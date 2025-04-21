@@ -288,7 +288,28 @@
 ;;                     map))
 ;;           default))))
 
-(defun map--file-handler (map prefix &optional variant)
+;; macros
+
+(defmacro map-extras-define-for-struct (struct keys)
+  `(progn
+     (cl-defmethod mapp ((_map ,struct))
+       t)
+     (cl-defmethod map-do #'(map ,struct)
+       ,@(--map `(funcall function ',it (oref map ,it))
+                keys))
+     (cl-defmethod map-elt ((map ,struct) key &optional default)
+       (let ((retsym 'map-extras--retsym))
+         (ignore retsym)
+         (or (cl-block retsym
+               (map-do (lambda (k v)
+                         (when (eq k key)
+                           (cl-return-from retsym v)))
+                       map))
+             default)))))
+
+;; file handlers
+
+(defun map--file-handler (map prefix)
   (declare (pure t) (side-effect-free t))
   `((unhandled-file-name-directory . (lambda (&rest args)
                                        nil))
@@ -333,16 +354,18 @@
                                 (setq buffer-file-name filename)
                                 (set-buffer-modified-p nil)
                                 (set-buffer-multibyte t))
-                              (let ((str (or (gather
-                                              (map-elt ,map
-                                                       (string-remove-prefix ,(format "%s/" prefix) filename))
-                                              ',variant)
-                                             "")))
+                              (let* ((obj (or (gather
+                                               (map-elt ,map
+                                                        (string-remove-prefix ,(format "%s/" prefix) filename)))
+                                              []))
+                                     (str (with-temp-buffer
+                                            (json-insert obj)
+                                            ;; Do roundabout with `json-insert' to handle utf-8 multibytes correctly.
+                                            (buffer-string))))
                                 (save-excursion
                                   (insert str))
                                 (format-decode nil (+ 2 (buffer-size)) visit)
-                                (list filename (+ 2 (length str))))
-                              ))
+                                (list filename (+ 2 (length str))))))
     (file-name-all-completions . (lambda (file directory)
                                    (nreverse
                                     (cl-loop for f in (directory-files directory)
