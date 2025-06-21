@@ -363,6 +363,8 @@
                                             ;; Do roundabout with `json-insert' to handle utf-8 multibytes correctly.
                                             (buffer-string))))
                                 (save-excursion
+                                  (setq-local nagy-list--data
+                                              (map-elt ,map (string-remove-prefix ,(format "%s/" prefix) filename)))
                                   (insert str))
                                 (format-decode nil (+ 2 (buffer-size)) visit)
                                 (list filename (+ 2 (length str))))))
