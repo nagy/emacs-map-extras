@@ -167,6 +167,15 @@
     (should (eq (map-elt km ?g) 'map-extras-g-command))
     (should (eq (lookup-key km (vector ?g)) 'map-extras-g-command))))
 
+(ert-deftest map-extras-keymap-nested-elt ()
+  "`map-nested-elt' reaches leaf bindings across prefix subkeymaps.
+Iteration and `map-elt' stay shallow; this is the documented deep
+lookup path."
+  (should (eq (map-nested-elt map-extras-tests-keymap (list 3 ?x))
+              'map-extras-test-cmd2))
+  ;; Shallow `map-elt' only sees the prefix's subkeymap binding.
+  (should (keymapp (map-elt map-extras-tests-keymap 3))))
+
 ;;; Thread maps
 
 (ert-deftest map-extras-mapp-thread ()

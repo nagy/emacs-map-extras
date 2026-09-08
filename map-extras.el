@@ -251,6 +251,11 @@ both correct and fast.  Pass an explicit TESTFN (typically
 ;; its own dispatch tag without colliding with map.el's `list' tag.
 ;; Instead, wrap the list methods: keymaps are detected at runtime and
 ;; everything else falls through via `cl-call-next-method'.
+;;
+;; All keymap operations are SHALLOW: iteration yields prefix keys
+;; bound to subkeymaps, `map-elt' looks up single events only, and
+;; `map-put!' defines single-event bindings.  Use `map-nested-elt'
+;; with a list of events for prefix paths, or `lookup-key' directly.
 
 (cl-defmethod mapp :around ((map list))
   (or (keymapp map) (cl-call-next-method)))
