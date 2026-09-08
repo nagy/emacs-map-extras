@@ -1,6 +1,6 @@
 ;;; map-extras.el --- More configuration for built-in map.el -*- lexical-binding: t -*-
 ;;
-;; Copyright (C) 2025 Daniel Nagy
+;; Copyright (C) 2025-2026 Daniel Nagy
 ;;
 ;; Author: Daniel Nagy <https://github.com/nagy>
 ;; Maintainer: Daniel Nagy <danielnagy@posteo.de>
