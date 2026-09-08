@@ -83,4 +83,5 @@ emacs --batch -L . -l map-extras-tests.el -f ert-run-tests-batch-and-exit
 
 ## License
 
-GPL-3.0-or-later.  See the header of `map-extras.el`.
+AGPL-3.0-or-later.  See the header of `map-extras.el` or the `LICENSE`
+file.

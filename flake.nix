@@ -60,7 +60,7 @@
                 buffers, windows, processes, markers, URLs and
                 timestamps, plus a key-translating map-transformer.
               '';
-              license = lib.licenses.gpl3Plus;
+              license = lib.licenses.agpl3Plus;
               homepage = "https://github.com/nagy/emacs-map-extras";
               maintainers = with lib.maintainers; [ nagy ];
             };
