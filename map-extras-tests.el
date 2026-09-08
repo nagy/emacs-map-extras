@@ -47,6 +47,27 @@
     (should (eq (map-elt (current-buffer) 'nonexistent-key :sentinel)
                 :sentinel))))
 
+(ert-deftest map-extras-buffer-elt-testfn ()
+  "`map-elt' honors TESTFN, defaulting to `eq'."
+  (with-temp-buffer
+    ;; Default testfn: eq lookup of symbols.
+    (should (equal (map-elt (current-buffer) 'name) (buffer-name)))
+    ;; Explicit testfn.
+    (should (equal (map-elt (current-buffer) 'name nil #'equal)
+                   (buffer-name)))
+    ;; TESTFN comparison runs against the key symbols.
+    (let* ((keys nil)
+           (seen (map-elt (current-buffer) 'size
+                          :sentinel
+                          (lambda (k _key)
+                            (push k keys) nil))))
+      ;; Non-matching testfn falls back to DEFAULT but sees all keys.
+      (should (eq seen :sentinel))
+      (should (equal keys
+                     (reverse '(name file-name point size window
+                                     process narrowed directory
+                                     major-mode hash)))))))
+
 (ert-deftest map-extras-buffer-do-keys ()
   "`map-do' visits every documented buffer key."
   (with-temp-buffer

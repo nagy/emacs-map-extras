@@ -35,13 +35,16 @@
 (require 'dash)
 (require 'eieio)
 
-(defun map-extras--elt (key map default)
-  (catch 'map-extras--found
-    (map-do (lambda (k v)
-              (when (eq k key)
-                (throw 'map-extras--found v)))
-            map)
-    default))
+(defun map-extras--elt (key map default &optional testfn)
+  "Look up KEY in MAP, returning DEFAULT when absent.
+Keys are compared with TESTFN, defaulting to `eq'."
+  (let ((match (or testfn #'eq)))
+    (catch 'map-extras--found
+      (map-do (lambda (k v)
+                (when (funcall match k key)
+                  (throw 'map-extras--found v)))
+              map)
+      default)))
 
 ;;; Buffer
 
@@ -61,8 +64,8 @@
   (funcall function 'hash (buffer-hash map)))
 
 
-(cl-defmethod map-elt ((map buffer) key &optional default)
-  (map-extras--elt key map default))
+(cl-defmethod map-elt ((map buffer) key &optional default testfn)
+  (map-extras--elt key map default testfn))
 
 ;;; Window
 
@@ -80,8 +83,8 @@
 ;; (funcall function 'display-table (window-display-table map))
 
 
-(cl-defmethod map-elt ((map window) key &optional default)
-  (map-extras--elt key map default))
+(cl-defmethod map-elt ((map window) key &optional default testfn)
+  (map-extras--elt key map default testfn))
 
 ;;; Process
 
@@ -109,8 +112,8 @@
 ;;          )
 
 
-(cl-defmethod map-elt ((map process) key &optional default)
-  (map-extras--elt key map default))
+(cl-defmethod map-elt ((map process) key &optional default testfn)
+  (map-extras--elt key map default testfn))
 
 ;;; Keymaps
 
@@ -126,8 +129,8 @@
   (funcall function 'buffer (marker-buffer marker)))
 
 
-(cl-defmethod map-elt ((marker marker) key &optional default)
-  (map-extras--elt key marker default))
+(cl-defmethod map-elt ((marker marker) key &optional default testfn)
+  (map-extras--elt key marker default testfn))
 
 ;;; URL
 
@@ -160,10 +163,12 @@
     (funcall function 'target (url-target map))
     (funcall function 'attributes (url-attributes map)))
 
-  (cl-defmethod map-elt ((map url) key &optional default)
-    (map-extras--elt key map default))
+  (cl-defmethod map-elt ((map url) key &optional default testfn)
+    (map-extras--elt key map default testfn))
 
   (cl-defmethod map-put! ((map url) key value &optional _testfn)
+    ;; Keys are matched by `pcase' on symbols; TESTFN is accepted for
+    ;; protocol compatibility but the write is a direct accessor setf.
     (pcase key
       ('type (setf (url-type map) value))
       ('user (setf (url-user map) value))
@@ -199,8 +204,8 @@
     (funcall function 'minute (ts-minute map))
     (funcall function 'second (ts-second map)))
 
-  (cl-defmethod map-elt ((map ts) key &optional default)
-    (map-extras--elt key map default)))
+  (cl-defmethod map-elt ((map ts) key &optional default testfn)
+    (map-extras--elt key map default testfn)))
 
 ;; macros
 
@@ -213,8 +218,8 @@ Each slot must have a STRUCT-<slot> accessor."
      (cl-defmethod map-do (function (map ,struct))
        ,@(--map `(funcall function ',it (,(intern (format "%s-%s" struct it)) map))
                 keys))
-     (cl-defmethod map-elt ((map ,struct) key &optional default)
-       (map-extras--elt key map default))))
+     (cl-defmethod map-elt ((map ,struct) key &optional default testfn)
+       (map-extras--elt key map default testfn))))
 
 (cl-defstruct map-transformer -inner key-to key-from)
 (defun map-transformer-get-map (map)
@@ -224,10 +229,10 @@ Each slot must have a STRUCT-<slot> accessor."
       inner)))
 (cl-defmethod mapp ((_map map-transformer))
   t)
-(cl-defmethod map-elt ((map map-transformer) key &optional default)
+(cl-defmethod map-elt ((map map-transformer) key &optional default testfn)
   (map-elt (map-transformer-get-map map)
            (funcall (map-transformer-key-from map) map key)
-           default))
+           default testfn))
 (cl-defmethod map-keys ((map map-transformer))
   (mapcar (lambda (key)
             (funcall (map-transformer-key-to map) map key))
