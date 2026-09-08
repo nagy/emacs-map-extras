@@ -402,6 +402,14 @@ objects are identities, not snapshots; use `map-pairs' instead."
     (should (eq (map-elt thing 'beta) :b))
     (should (eq (map-elt thing 'gamma :dflt) :dflt))))
 
+(ert-deftest map-extras-struct-elt-fast-path ()
+  "`map-elt' on a struct reads a slot directly, without the scan."
+  (let ((thing (make-map-extras-tests-thing :alpha 1 :beta 2)))
+    (cl-letf (((symbol-function 'map-extras--elt)
+               (lambda (&rest _) (error "map-extras--elt must not be called"))))
+      (should (= (map-elt thing 'alpha) 1))
+      (should (= (map-elt thing 'beta) 2)))))
+
 (ert-deftest map-extras-struct-do-keys ()
   "`map-extras-define-for-struct' defines `map-do'."
   (let ((thing (make-map-extras-tests-thing :alpha 1 :beta 2))

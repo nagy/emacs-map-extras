@@ -485,7 +485,18 @@ struct stays read-only."
                    `(funcall function ',slot (,(intern (format "%s-%s" struct slot)) map)))
                  keys))
      (cl-defmethod map-elt ((map ,struct) key &optional default testfn)
-       (map-extras--elt key map default testfn))
+       "Return MAP's value for KEY (a struct defined via
+`map-extras-define-for-struct'), or DEFAULT if absent.
+Fast path: a slot is read directly.  With TESTFN, fall to the
+scan with that test."
+       (if testfn
+           (map-extras--elt key map default testfn)
+         (pcase key
+           ,@(mapcar (lambda (slot)
+                       (list (list 'quote slot)
+                             (list (intern (format "%s-%s" struct slot)) 'map)))
+                     keys)
+           (_ (map-extras--elt key map default)))))
      ,@(when writable
          `((cl-defmethod map-put! ((map ,struct) key value &optional _testfn)
              (cl-case key
