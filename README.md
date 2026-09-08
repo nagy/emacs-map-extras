@@ -66,6 +66,28 @@ Each slot needs a `STRUCT-<slot>` accessor (the `cl-defstruct`
 default).  EIEIO objects need no declaration: all public, bound slots
 are visible as keys automatically.
 
+## Key-translating maps
+
+`map-extras-transformer` wraps any map and translates keys on the way
+in and out:
+
+```elisp
+(map-extras-make-transformer-via-extension alist "-bar")
+;; iteration keys: "foo-bar-bar", "foo-baz-bar"
+;; lookup of "foo" strips the "-bar" suffix before reading the alist
+```
+
+`map-extras-make-transformer-via-extension` returns a transformer
+over MAP that appends EXTENSION to every key on iteration and strips
+a trailing EXTENSION from lookup keys.  For full control, build one
+directly with `make-map-extras-transformer`, passing `:-inner`,
+`:key-from` (outer → inner key) and `:key-to` (inner → outer key).
+The inner map may also be a symbol, which is dereferenced via
+`symbol-value` at read time.
+
+Supported operations: `mapp`, `map-elt`, `map-keys`, `map-do` and
+everything derived from them.  `map-put!` is not supported.
+
 ## Installation
 
 Only built-in libraries are required (`map`, `eieio`); Emacs 27.1 or
