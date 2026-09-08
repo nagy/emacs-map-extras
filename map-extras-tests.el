@@ -79,6 +79,16 @@
       (should (member 'major-mode keys))
       (should (member 'directory keys)))))
 
+(ert-deftest map-extras-buffer-elt-fast-path ()
+  "`map-elt' with the default testfn reads one slot directly."
+  (with-temp-buffer
+    (cl-letf (((symbol-function 'buffer-narrowed-p)
+               (lambda () (error "buffer-narrowed-p must not be called")))
+              ((symbol-function 'buffer-file-name)
+               (lambda (&optional _b) (error "buffer-file-name must not be called"))))
+      (should (equal (map-elt (current-buffer) 'name)
+                     (buffer-name))))))
+
 (ert-deftest map-extras-buffer-do-skips-expensive-keys ()
   "`map-elt' on a buffer never computes `buffer-hash'."
   (with-temp-buffer

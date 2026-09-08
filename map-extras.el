@@ -79,7 +79,22 @@ both correct and fast.  Pass an explicit TESTFN (typically
 
 
 (cl-defmethod map-elt ((map buffer) key &optional default testfn)
-  (map-extras--elt key map default testfn))
+  ;; Direct dispatch for the default `eq' lookup; a custom TESTFN
+  ;; falls back to the generic scan in `map-extras--elt', which sees
+  ;; every key.  This avoids computing all accessors for one lookup.
+  (if testfn
+      (map-extras--elt key map default testfn)
+    (pcase key
+      ('name (buffer-name map))
+      ('file-name (buffer-file-name map))
+      ('point (with-current-buffer map (point)))
+      ('size (buffer-size map))
+      ('window (get-buffer-window map t))
+      ('process (get-buffer-process map))
+      ('narrowed (with-current-buffer map (buffer-narrowed-p)))
+      ('directory (buffer-local-value 'default-directory map))
+      ('major-mode (buffer-local-value 'major-mode map))
+      (_ (map-extras--elt key map default)))))
 
 (cl-defmethod map-put! ((map buffer) key value &optional _testfn)
   ;; Keys are matched by `pcase'; TESTFN is accepted for protocol
@@ -102,7 +117,14 @@ both correct and fast.  Pass an explicit TESTFN (typically
   (funcall function 'properties (overlay-properties map)))
 
 (cl-defmethod map-elt ((map overlay) key &optional default testfn)
-  (map-extras--elt key map default testfn))
+  (if testfn
+      (map-extras--elt key map default testfn)
+    (pcase key
+      ('start (overlay-start map))
+      ('end (overlay-end map))
+      ('buffer (overlay-buffer map))
+      ('properties (overlay-properties map))
+      (_ (map-extras--elt key map default)))))
 
 (cl-defmethod map-put! ((map overlay) key value &optional _testfn)
   (pcase key
@@ -128,7 +150,16 @@ both correct and fast.  Pass an explicit TESTFN (typically
   (funcall function 'start (window-start map)))
 
 (cl-defmethod map-elt ((map window) key &optional default testfn)
-  (map-extras--elt key map default testfn))
+  (if testfn
+      (map-extras--elt key map default testfn)
+    (pcase key
+      ('buffer (window-buffer map))
+      ('left (window-left map))
+      ('right (window-right map))
+      ('point (window-point map))
+      ('parameters (window-parameters map))
+      ('start (window-start map))
+      (_ (map-extras--elt key map default)))))
 
 ;;; Process
 
@@ -150,7 +181,20 @@ both correct and fast.  Pass an explicit TESTFN (typically
   (funcall function 'mark (process-mark map)))
 
 (cl-defmethod map-elt ((map process) key &optional default testfn)
-  (map-extras--elt key map default testfn))
+  (if testfn
+      (map-extras--elt key map default testfn)
+    (pcase key
+      ('name (process-name map))
+      ('id (process-id map))
+      ('plist (process-plist map))
+      ('status (process-status map))
+      ('buffer (process-buffer map))
+      ('filter (process-filter map))
+      ('sentinel (process-sentinel map))
+      ('contact (process-contact map))
+      ('command (process-command map))
+      ('mark (process-mark map))
+      (_ (map-extras--elt key map default)))))
 
 (cl-defmethod map-put! ((map process) key value &optional _testfn)
   (pcase key
@@ -175,7 +219,16 @@ both correct and fast.  Pass an explicit TESTFN (typically
   (funcall function 'selected (eq map (selected-frame))))
 
 (cl-defmethod map-elt ((map frame) key &optional default testfn)
-  (map-extras--elt key map default testfn))
+  (if testfn
+      (map-extras--elt key map default testfn)
+    (pcase key
+      ('name (frame-parameter map 'name))
+      ('title (frame-parameter map 'title))
+      ('visible (frame-visible-p map))
+      ('width (frame-width map))
+      ('height (frame-height map))
+      ('selected (eq map (selected-frame)))
+      (_ (map-extras--elt key map default)))))
 
 ;;; Thread
 
@@ -187,7 +240,12 @@ both correct and fast.  Pass an explicit TESTFN (typically
   (funcall function 'live (thread-live-p map)))
 
 (cl-defmethod map-elt ((map thread) key &optional default testfn)
-  (map-extras--elt key map default testfn))
+  (if testfn
+      (map-extras--elt key map default testfn)
+    (pcase key
+      ('name (thread-name map))
+      ('live (thread-live-p map))
+      (_ (map-extras--elt key map default)))))
 
 ;;; Keymaps
 
@@ -228,7 +286,12 @@ both correct and fast.  Pass an explicit TESTFN (typically
 
 
 (cl-defmethod map-elt ((marker marker) key &optional default testfn)
-  (map-extras--elt key marker default testfn))
+  (if testfn
+      (map-extras--elt key marker default testfn)
+    (pcase key
+      ('position (marker-position marker))
+      ('buffer (marker-buffer marker))
+      (_ (map-extras--elt key marker default)))))
 
 ;;; URL
 
@@ -261,7 +324,18 @@ both correct and fast.  Pass an explicit TESTFN (typically
     (funcall function 'attributes (url-attributes map)))
 
   (cl-defmethod map-elt ((map url) key &optional default testfn)
-    (map-extras--elt key map default testfn))
+    (if testfn
+        (map-extras--elt key map default testfn)
+      (pcase key
+        ('type (url-type map))
+        ('user (url-user map))
+        ('password (url-password map))
+        ('host (url-host map))
+        ('portspec (url-portspec map))
+        ('filename (url-filename map))
+        ('target (url-target map))
+        ('attributes (url-attributes map))
+        (_ (map-extras--elt key map default)))))
 
   (cl-defmethod map-put! ((map url) key value &optional _testfn)
     ;; Keys are matched by `pcase' on symbols; TESTFN is accepted for
@@ -297,7 +371,16 @@ both correct and fast.  Pass an explicit TESTFN (typically
     (funcall function 'second (ts-second map)))
 
   (cl-defmethod map-elt ((map ts) key &optional default testfn)
-    (map-extras--elt key map default testfn)))
+    (if testfn
+        (map-extras--elt key map default testfn)
+      (pcase key
+        ('year (ts-year map))
+        ('month (ts-month map))
+        ('day (ts-day map))
+        ('hour (ts-hour map))
+        ('minute (ts-minute map))
+        ('second (ts-second map))
+        (_ (map-extras--elt key map default))))))
 
 ;; macros
 
@@ -370,7 +453,15 @@ An inner map given as a symbol is dereferenced via `symbol-value'."
           (funcall function name (eieio-oref map name)))))))
 
 (cl-defmethod map-elt ((map eieio-default-superclass) key &optional default testfn)
-  (map-extras--elt key map default testfn))
+  ;; Fast path: a bound, public slot is read directly.  Internal
+  ;; `--*' slots and unknown names fall to the scan, which skips them
+  ;; exactly like `map-do' does.
+  (if (and (not testfn)
+           (slot-exists-p map key)
+           (not (string-prefix-p "--" (symbol-name key)))
+           (slot-boundp map key))
+      (eieio-oref map key)
+    (map-extras--elt key map default testfn)))
 
 (cl-defmethod map-put! ((map eieio-default-superclass) key value &optional _testfn)
   ;; Mirror the read path: `map-do' never exposes `--*' slots or
