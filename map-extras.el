@@ -553,6 +553,12 @@ runtime."
 ;; One set of methods for any EIEIO object: slots become keys.  More
 ;; specific methods (e.g. a class defining its own map-do) always win,
 ;; since eieio-default-superclass is the root of the class hierarchy.
+(defun map-extras--slot-name (descriptor)
+  "Return the name of the EIEIO slot described by DESCRIPTOR.
+Wraps the internal `cl--slot-descriptor-name' so that this file's
+single dependency on that internal API lives in one place."
+  (cl--slot-descriptor-name descriptor))
+
 (cl-defmethod mapp ((_map eieio-default-superclass))
   "Any EIEIO object counts as a map over its public, bound slots."
   t)
@@ -561,7 +567,7 @@ runtime."
   "Call FUNCTION on each public, bound slot of the EIEIO object MAP.
 Slots named --* are internal and unbound until set."
   (dolist (slot (eieio-class-slots (eieio-object-class map)))
-    (let ((name (cl--slot-descriptor-name slot)))
+    (let ((name (map-extras--slot-name slot)))
       ;; Slots named --* are internal and unbound until set.
       (unless (string-prefix-p "--" (symbol-name name))
         (when (slot-boundp map name)
