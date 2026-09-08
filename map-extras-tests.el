@@ -122,6 +122,39 @@
       (should (= (map-elt marker 'position) 5))
       (should (eq (map-elt marker 'buffer) (current-buffer))))))
 
+;;; Frame maps
+
+(ert-deftest map-extras-mapp-frame ()
+  "`mapp' recognizes frames."
+  (should (mapp (selected-frame))))
+
+(ert-deftest map-extras-frame-elt ()
+  "`map-elt' reads cheap frame attributes."
+  (let ((frame (selected-frame)))
+    (should (stringp (map-elt frame 'name)))
+    (should (integerp (map-elt frame 'width)))
+    (should (integerp (map-elt frame 'height)))
+    (should (eq (map-elt frame 'selected) t))
+    (should (eq (map-elt frame 'nonexistent :sentinel) :sentinel))))
+
+(ert-deftest map-extras-frame-do-skips-expensive-keys ()
+  "`map-do' on a frame never hits the window-system-only accessors."
+  (let ((frame (selected-frame)))
+    (cl-letf (((symbol-function 'frame-position)
+               (lambda (&optional _frame) (error "frame-position must not be called")))
+              ((symbol-function 'frame-monitor-attributes)
+               (lambda (&optional _frame) (error "frame-monitor-attributes must not be called")))
+              ((symbol-function 'frame-pixel-width)
+               (lambda (&optional _frame) (error "frame-pixel-width must not be called")))
+              ((symbol-function 'frame-pixel-height)
+               (lambda (&optional _frame) (error "frame-pixel-height must not be called"))))
+      (should (stringp (map-elt frame 'name)))
+      (should (integerp (map-elt frame 'width)))
+      (should-not (memq 'parameters
+                        (let (keys)
+                          (map-do (lambda (k _v) (push k keys)) frame)
+                          keys))))))
+
 ;;; Overlay maps
 
 (ert-deftest map-extras-mapp-overlay ()

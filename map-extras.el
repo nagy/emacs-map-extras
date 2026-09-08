@@ -152,6 +152,25 @@ Keys are compared with TESTFN, defaulting to `eq'."
     ('filter (set-process-filter map value))
     ('sentinel (set-process-sentinel map value))))
 
+;;; Frame
+
+(cl-defmethod mapp ((_map frame))
+  t)
+
+(cl-defmethod map-do (function (map frame))
+  ;; Cheap keys only: skip `frame-parameters', `frame-position',
+  ;; `frame-monitor-attributes' and the *pixel-* geometries, which can
+  ;; force a round-trip with the window system.
+  (funcall function 'name (frame-parameter map 'name))
+  (funcall function 'title (frame-parameter map 'title))
+  (funcall function 'visible (frame-visible-p map))
+  (funcall function 'width (frame-width map))
+  (funcall function 'height (frame-height map))
+  (funcall function 'selected (eq map (selected-frame))))
+
+(cl-defmethod map-elt ((map frame) key &optional default testfn)
+  (map-extras--elt key map default testfn))
+
 ;;; Keymaps
 
 ;; ...
