@@ -90,12 +90,14 @@ both correct and fast.  Pass an explicit TESTFN (typically
 ;;; Buffer
 
 (cl-defmethod mapp ((_map buffer))
+  "Buffers always count as maps."
   t)
 
 (cl-defmethod map-do (function (map buffer))
-  ;; Only cheap keys here: `map-elt' and `map-keys' iterate this, so
-  ;; expensive attributes (e.g. `buffer-hash') must not be computed on
-  ;; every query.  Call `buffer-hash' directly when needed.
+  "Call FUNCTION on each cheap key-value pair of the buffer MAP.
+Only cheap keys here: `map-elt' and `map-keys' iterate this, so
+expensive attributes (e.g. `buffer-hash') must not be computed on
+every query.  Call `buffer-hash' directly when needed."
   (funcall function 'name (buffer-name map))
   (funcall function 'file-name (buffer-file-name map))
   (funcall function 'point (with-current-buffer map (point)))
@@ -108,9 +110,10 @@ both correct and fast.  Pass an explicit TESTFN (typically
 
 
 (cl-defmethod map-elt ((map buffer) key &optional default testfn)
-  ;; Direct dispatch for the default `eq' lookup; a custom TESTFN
-  ;; falls back to the generic scan in `map-extras--elt', which sees
-  ;; every key.  This avoids computing all accessors for one lookup.
+  "Return MAP's value for KEY (a buffer), or DEFAULT if absent.
+Direct dispatch for the default `eq' lookup; a custom TESTFN
+falls back to the generic scan in `map-extras--elt', which sees
+every key.  This avoids computing all accessors for one lookup."
   (if testfn
       (map-extras--elt key map default testfn)
     (pcase key
@@ -126,8 +129,10 @@ both correct and fast.  Pass an explicit TESTFN (typically
       (_ (map-extras--elt key map default)))))
 
 (cl-defmethod map-put! ((map buffer) key value &optional _testfn)
-  ;; Keys are matched by `pcase'; TESTFN is accepted for protocol
-  ;; compatibility but unused, as in the `url' methods.
+  "Set MAP's KEY to VALUE (a buffer): rename it or change its directory.
+Keys are matched by `pcase'; TESTFN is accepted for protocol
+compatibility but unused, as in the `url' methods.  Unknown keys
+signal `user-error'."
   (pcase key
     ('name (with-current-buffer map (rename-buffer value)))
     ('directory (with-current-buffer map (cd value)))
@@ -137,15 +142,19 @@ both correct and fast.  Pass an explicit TESTFN (typically
 ;;; Overlay
 
 (cl-defmethod mapp ((_map overlay))
+  "Overlays always count as maps."
   t)
 
 (cl-defmethod map-do (function (map overlay))
+  "Call FUNCTION on each structural key-value pair of the overlay MAP."
   (funcall function 'start (overlay-start map))
   (funcall function 'end (overlay-end map))
   (funcall function 'buffer (overlay-buffer map))
   (funcall function 'properties (overlay-properties map)))
 
 (cl-defmethod map-elt ((map overlay) key &optional default testfn)
+  "Return MAP's value for KEY (an overlay), or DEFAULT if absent.
+With TESTFN, scan the structural keys with that test."
   (if testfn
       (map-extras--elt key map default testfn)
     (pcase key
@@ -156,6 +165,9 @@ both correct and fast.  Pass an explicit TESTFN (typically
       (_ (map-extras--elt key map default)))))
 
 (cl-defmethod map-put! ((map overlay) key value &optional _testfn)
+  "Set MAP's KEY to VALUE (an overlay).
+Structural keys move or retarget the overlay; any other key is
+stored as an overlay property."
   (pcase key
     ('start (move-overlay map value (overlay-end map)))
     ('end (move-overlay map (overlay-start map) value))
@@ -166,11 +178,13 @@ both correct and fast.  Pass an explicit TESTFN (typically
 ;;; Window
 
 (cl-defmethod mapp ((_map window))
+  "Windows always count as maps."
   t)
 
 (cl-defmethod map-do (function (map window))
-  ;; `window-end' may force redisplay, so it is deliberately excluded
-  ;; from the iteration; call `window-end' directly when needed.
+  "Call FUNCTION on each cheap key-value pair of the window MAP.
+`window-end' may force redisplay, so it is deliberately excluded
+from the iteration; call `window-end' directly when needed."
   (funcall function 'buffer (window-buffer map))
   (funcall function 'left (window-left map))
   (funcall function 'right (window-right map))
@@ -179,6 +193,8 @@ both correct and fast.  Pass an explicit TESTFN (typically
   (funcall function 'start (window-start map)))
 
 (cl-defmethod map-elt ((map window) key &optional default testfn)
+  "Return MAP's value for KEY (a window), or DEFAULT if absent.
+With TESTFN, scan the cheap keys with that test."
   (if testfn
       (map-extras--elt key map default testfn)
     (pcase key
@@ -193,9 +209,13 @@ both correct and fast.  Pass an explicit TESTFN (typically
 ;;; Process
 
 (cl-defmethod mapp ((_map process))
+  "Processes always count as maps."
   t)
 
 (cl-defmethod map-do (function (map process))
+  "Call FUNCTION on each key-value pair of the process MAP.
+`process-attributes' is a system call, deliberately excluded from
+the iteration; call it directly when needed."
   (funcall function 'name (process-name map))
   (funcall function 'id (process-id map))
   (funcall function 'plist (process-plist map))
@@ -210,6 +230,8 @@ both correct and fast.  Pass an explicit TESTFN (typically
   (funcall function 'mark (process-mark map)))
 
 (cl-defmethod map-elt ((map process) key &optional default testfn)
+  "Return MAP's value for KEY (a process), or DEFAULT if absent.
+With TESTFN, scan all keys with that test."
   (if testfn
       (map-extras--elt key map default testfn)
     (pcase key
@@ -226,6 +248,9 @@ both correct and fast.  Pass an explicit TESTFN (typically
       (_ (map-extras--elt key map default)))))
 
 (cl-defmethod map-put! ((map process) key value &optional _testfn)
+  "Set MAP's KEY to VALUE (a process).
+Only `filter' and `sentinel' are writable; unknown keys signal
+`user-error'."
   (pcase key
     ('filter (set-process-filter map value))
     ('sentinel (set-process-sentinel map value))
@@ -234,12 +259,14 @@ both correct and fast.  Pass an explicit TESTFN (typically
 ;;; Frame
 
 (cl-defmethod mapp ((_map frame))
+  "Frames always count as maps."
   t)
 
 (cl-defmethod map-do (function (map frame))
-  ;; Cheap keys only: skip `frame-parameters', `frame-position',
-  ;; `frame-monitor-attributes' and the *pixel-* geometries, which can
-  ;; force a round-trip with the window system.
+  "Call FUNCTION on each cheap key-value pair of the frame MAP.
+Cheap keys only: skip `frame-parameters', `frame-position',
+`frame-monitor-attributes' and the *pixel-* geometries, which can
+force a round-trip with the window system."
   (funcall function 'name (frame-parameter map 'name))
   (funcall function 'title (frame-parameter map 'title))
   (funcall function 'visible (frame-visible-p map))
@@ -248,6 +275,8 @@ both correct and fast.  Pass an explicit TESTFN (typically
   (funcall function 'selected (eq map (selected-frame))))
 
 (cl-defmethod map-elt ((map frame) key &optional default testfn)
+  "Return MAP's value for KEY (a frame), or DEFAULT if absent.
+With TESTFN, scan the cheap keys with that test."
   (if testfn
       (map-extras--elt key map default testfn)
     (pcase key
@@ -262,13 +291,17 @@ both correct and fast.  Pass an explicit TESTFN (typically
 ;;; Thread
 
 (cl-defmethod mapp ((_map thread))
+  "Threads always count as maps."
   t)
 
 (cl-defmethod map-do (function (map thread))
+  "Call FUNCTION on each key-value pair of the thread MAP."
   (funcall function 'name (thread-name map))
   (funcall function 'live (thread-live-p map)))
 
 (cl-defmethod map-elt ((map thread) key &optional default testfn)
+  "Return MAP's value for KEY (a thread), or DEFAULT if absent.
+With TESTFN, scan all keys with that test."
   (if testfn
       (map-extras--elt key map default testfn)
     (pcase key
@@ -289,9 +322,12 @@ both correct and fast.  Pass an explicit TESTFN (typically
 ;; with a list of events for prefix paths, or `lookup-key' directly.
 
 (cl-defmethod mapp :around ((map list))
+  "Return t if LIST counts as a map; keymaps do, other lists defer."
   (or (keymapp map) (cl-call-next-method)))
 
 (cl-defmethod map-do :around (function (map list))
+  "Call FUNCTION on each event binding if MAP is a keymap; else defer.
+Shallow iteration: prefix keys appear with a subkeymap binding."
   (if (keymapp map)
       ;; Shallow iteration: prefix keys appear with a subkeymap binding.
       (map-keymap (lambda (event binding)
@@ -300,11 +336,14 @@ both correct and fast.  Pass an explicit TESTFN (typically
     (cl-call-next-method)))
 
 (cl-defmethod map-elt :around ((map list) key &optional default testfn)
+  "Return MAP's value for KEY if MAP is a keymap; otherwise defer.
+With TESTFN, scan the event keys with that test."
   (if (keymapp map)
       (map-extras--elt key map default testfn)
     (cl-call-next-method)))
 
 (cl-defmethod map-put! :around ((map list) key value &optional _testfn)
+  "Define KEY as VALUE in MAP if MAP is a keymap; otherwise defer."
   (if (keymapp map)
       (define-key map (vector key) value)
     (cl-call-next-method)))
@@ -312,14 +351,18 @@ both correct and fast.  Pass an explicit TESTFN (typically
 ;;; Marker
 
 (cl-defmethod mapp ((_marker marker))
+  "Markers always count as maps."
   t)
 
 (cl-defmethod map-do (function (marker marker))
+  "Call FUNCTION on each key-value pair of MARKER."
   (funcall function 'position (marker-position marker))
   (funcall function 'buffer (marker-buffer marker)))
 
 
 (cl-defmethod map-elt ((marker marker) key &optional default testfn)
+  "Return MARKER's value for KEY, or DEFAULT if absent.
+With TESTFN, scan the position and buffer keys with that test."
   (if testfn
       (map-extras--elt key marker default testfn)
     (pcase key
@@ -345,9 +388,11 @@ both correct and fast.  Pass an explicit TESTFN (typically
   (declare-function url-attributes "url-parse")
 
   (cl-defmethod mapp ((_map url))
+    "Url objects always count as maps."
     t)
 
   (cl-defmethod map-do (function (map url))
+    "Call FUNCTION on each key-value pair of the url object MAP."
     (funcall function 'type (url-type map))
     (funcall function 'user (url-user map))
     (funcall function 'password (url-password map))
@@ -358,6 +403,8 @@ both correct and fast.  Pass an explicit TESTFN (typically
     (funcall function 'attributes (url-attributes map)))
 
   (cl-defmethod map-elt ((map url) key &optional default testfn)
+    "Return MAP's value for KEY (a url object), or DEFAULT if absent.
+With TESTFN, scan the url fields with that test."
     (if testfn
         (map-extras--elt key map default testfn)
       (pcase key
@@ -372,8 +419,10 @@ both correct and fast.  Pass an explicit TESTFN (typically
         (_ (map-extras--elt key map default)))))
 
   (cl-defmethod map-put! ((map url) key value &optional _testfn)
-    ;; Keys are matched by `pcase' on symbols; TESTFN is accepted for
-    ;; protocol compatibility but the write is a direct accessor setf.
+    "Set MAP's KEY to VALUE (a url object) via the corresponding
+accessor.  Keys are matched by `pcase' on symbols; TESTFN is accepted for
+protocol compatibility but the write is a direct accessor `setf'.
+Unknown keys signal `user-error'."
     (pcase key
       ('type (setf (url-type map) value))
       ('user (setf (url-user map) value))
@@ -395,8 +444,10 @@ both correct and fast.  Pass an explicit TESTFN (typically
   (declare-function ts-month "ts")
   (declare-function ts-year "ts")
   (cl-defmethod mapp ((_map ts))
+    "Timestamps always count as maps."
     t)
   (cl-defmethod map-do (function (map ts))
+    "Call FUNCTION on each key-value pair of the timestamp MAP."
     (funcall function 'year (ts-year map))
     (funcall function 'month (ts-month map))
     (funcall function 'day (ts-day map))
@@ -405,6 +456,7 @@ both correct and fast.  Pass an explicit TESTFN (typically
     (funcall function 'second (ts-second map)))
 
   (cl-defmethod map-elt ((map ts) key &optional default testfn)
+    "Return MAP's value for KEY (a timestamp), or DEFAULT if absent."
     (if testfn
         (map-extras--elt key map default testfn)
       (pcase key
@@ -419,7 +471,7 @@ both correct and fast.  Pass an explicit TESTFN (typically
 ;; macros
 
 (defmacro map-extras-define-for-struct (struct keys &optional writable)
-  "Define `map.el' methods for cl-defstruct STRUCT with slots KEYS.
+  "Define `map.el' methods for `cl-defstruct' STRUCT with slots KEYS.
 Each slot must have a STRUCT-<slot> accessor.
 
 With WRITABLE non-nil, also define `map-put!' writing through the
@@ -453,17 +505,25 @@ An inner map given as a symbol is dereferenced via `symbol-value'."
         (symbol-value inner)
       inner)))
 (cl-defmethod mapp ((_map map-extras-transformer))
+  "Transformers always count as maps."
   t)
 (cl-defmethod map-elt ((map map-extras-transformer) key &optional default testfn)
+  "Return MAP's value for the translated KEY, or DEFAULT if absent.
+MAP is a map-extras-transformer; its inner map is looked up with
+KEY translated by `key-from'.  TESTFN passes through to the inner
+lookup."
   (map-elt (map-extras--transformer-map map)
            (funcall (map-extras-transformer-key-from map) map key)
            default testfn))
 (cl-defmethod map-keys ((map map-extras-transformer))
+  "Return the translated keys of the inner map of the transformer MAP."
   (mapcar (lambda (key)
             (funcall (map-extras-transformer-key-to map) map key))
           (map-keys (map-extras--transformer-map map))))
 
 (cl-defmethod map-do (function (map map-extras-transformer))
+  "Call FUNCTION on each translated key-value pair of MAP.
+MAP is a map-extras-transformer."
   (map-do (lambda (key value)
             (funcall function
                      (funcall (map-extras-transformer-key-from map) map key)
@@ -471,6 +531,11 @@ An inner map given as a symbol is dereferenced via `symbol-value'."
           (map-extras--transformer-map map)))
 
 (defun map-extras-make-transformer-via-extension (map extension)
+  "Return a transformer over MAP that appends EXTENSION to keys.
+Lookups strip a trailing EXTENSION from the requested key before
+searching MAP; iteration adds it to every inner key.  This avoids
+`string-remove-suffix' (subr-x), which is not always available at
+runtime."
   (make-map-extras-transformer
    :-inner map
    ;; Strip EXTENSION without `string-remove-suffix' (subr-x), which
@@ -489,9 +554,12 @@ An inner map given as a symbol is dereferenced via `symbol-value'."
 ;; specific methods (e.g. a class defining its own map-do) always win,
 ;; since eieio-default-superclass is the root of the class hierarchy.
 (cl-defmethod mapp ((_map eieio-default-superclass))
+  "Any EIEIO object counts as a map over its public, bound slots."
   t)
 
 (cl-defmethod map-do (function (map eieio-default-superclass))
+  "Call FUNCTION on each public, bound slot of the EIEIO object MAP.
+Slots named --* are internal and unbound until set."
   (dolist (slot (eieio-class-slots (eieio-object-class map)))
     (let ((name (cl--slot-descriptor-name slot)))
       ;; Slots named --* are internal and unbound until set.
@@ -500,9 +568,10 @@ An inner map given as a symbol is dereferenced via `symbol-value'."
           (funcall function name (eieio-oref map name)))))))
 
 (cl-defmethod map-elt ((map eieio-default-superclass) key &optional default testfn)
-  ;; Fast path: a bound, public slot is read directly.  Internal
-  ;; `--*' slots and unknown names fall to the scan, which skips them
-  ;; exactly like `map-do' does.
+  "Return MAP's slot value for KEY, or DEFAULT if absent.
+Fast path: a bound, public slot is read directly.  With TESTFN,
+internal `--*' slots and unknown names fall to the scan, which
+skips them exactly like `map-do' does."
   (if (and (not testfn)
            (slot-exists-p map key)
            (not (string-prefix-p "--" (symbol-name key)))
@@ -511,9 +580,10 @@ An inner map given as a symbol is dereferenced via `symbol-value'."
     (map-extras--elt key map default testfn)))
 
 (cl-defmethod map-put! ((map eieio-default-superclass) key value &optional _testfn)
-  ;; Mirror the read path: `map-do' never exposes `--*' slots or
-  ;; unknown slot names, so writing them through `map-put!' is an
-  ;; error too.
+  "Set MAP's KEY to VALUE (an EIEIO object).
+Mirror the read path: `map-do' never exposes `--*' slots or
+unknown slot names, so writing them through `map-put!' is an
+error too."
   (if (and (slot-exists-p map key)
            (not (string-prefix-p "--" (symbol-name key))))
       (setf (eieio-oref map key) value)
