@@ -7,6 +7,8 @@
 (require 'ert)
 (require 'map-extras)
 
+(declare-function ts-parse "ts")
+
 ;;; Protocol entry points
 
 (ert-deftest map-extras-mapp-buffer ()
@@ -177,6 +179,26 @@ lookup path."
               'map-extras-test-cmd2))
   ;; Shallow `map-elt' only sees the prefix's subkeymap binding.
   (should (keymapp (map-elt map-extras-tests-keymap 3))))
+
+(ert-deftest map-extras-window-put-errors ()
+  "`map-put!' on a window signals `user-error' (read-only)."
+  (should-error (map-put! (selected-window) 'buffer (current-buffer))
+                :type 'user-error))
+
+(ert-deftest map-extras-frame-put-errors ()
+  "`map-put!' on a frame signals `user-error' (read-only)."
+  (should-error (map-put! (selected-frame) 'name "x")
+                :type 'user-error))
+
+(ert-deftest map-extras-thread-put-errors ()
+  "`map-put!' on a thread signals `user-error' (read-only)."
+  (should-error (map-put! (car (all-threads)) 'name "x")
+                :type 'user-error))
+
+(ert-deftest map-extras-marker-put-errors ()
+  "`map-put!' on a marker signals `user-error' (read-only)."
+  (should-error (map-put! (point-marker) 'position 1)
+                :type 'user-error))
 
 ;;; Thread maps
 
@@ -416,6 +438,14 @@ objects are identities, not snapshots; use `map-pairs' instead."
         (kv nil))
     (map-do (lambda (k v) (push (cons k v) kv)) thing)
     (should (equal kv '((beta . 2) (alpha . 1))))))
+
+;;; ts maps
+
+(ert-deftest map-extras-ts-put-errors ()
+  "`map-put!' on a ts timestamp signals `user-error' (read-only)."
+  (skip-unless (require 'ts nil t))
+  (should-error (map-put! (ts-parse "2026-01-02 03:04:05") 'year 2000)
+                :type 'user-error))
 
 ;;; map-extras-transformer
 

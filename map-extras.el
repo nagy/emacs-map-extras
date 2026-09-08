@@ -206,6 +206,11 @@ With TESTFN, scan the cheap keys with that test."
       ('start (window-start map))
       (_ (map-extras--elt key map default)))))
 
+(cl-defmethod map-put! ((_map window) key _value &optional _testfn)
+  "Set MAP's KEY to VALUE (a window).
+Windows are read-only maps; every key signals `user-error'."
+  (user-error "Cannot write key %S to window; windows are read-only" key))
+
 ;;; Process
 
 (cl-defmethod mapp ((_map process))
@@ -288,6 +293,11 @@ With TESTFN, scan the cheap keys with that test."
       ('selected (eq map (selected-frame)))
       (_ (map-extras--elt key map default)))))
 
+(cl-defmethod map-put! ((_map frame) key _value &optional _testfn)
+  "Set MAP's KEY to VALUE (a frame).
+Frames are read-only maps; every key signals `user-error'."
+  (user-error "Cannot write key %S to frame; frames are read-only" key))
+
 ;;; Thread
 
 (cl-defmethod mapp ((_map thread))
@@ -308,6 +318,11 @@ With TESTFN, scan all keys with that test."
       ('name (thread-name map))
       ('live (thread-live-p map))
       (_ (map-extras--elt key map default)))))
+
+(cl-defmethod map-put! ((_map thread) key _value &optional _testfn)
+  "Set MAP's KEY to VALUE (a thread).
+Threads are read-only maps; every key signals `user-error'."
+  (user-error "Cannot write key %S to thread; threads are read-only" key))
 
 ;;; Keymaps
 
@@ -369,6 +384,11 @@ With TESTFN, scan the position and buffer keys with that test."
       ('position (marker-position marker))
       ('buffer (marker-buffer marker))
       (_ (map-extras--elt key marker default)))))
+
+(cl-defmethod map-put! ((_marker marker) key _value &optional _testfn)
+  "Set MARKER's KEY to VALUE.
+Markers are read-only maps; every key signals `user-error'."
+  (user-error "Cannot write key %S to marker; markers are read-only" key))
 
 ;;; URL
 
@@ -466,7 +486,12 @@ Unknown keys signal `user-error'."
         ('hour (ts-hour map))
         ('minute (ts-minute map))
         ('second (ts-second map))
-        (_ (map-extras--elt key map default))))))
+        (_ (map-extras--elt key map default)))))
+
+  (cl-defmethod map-put! ((_map ts) key _value &optional _testfn)
+    "Set MAP's KEY to VALUE (a timestamp).
+Timestamps are read-only maps; every key signals `user-error'."
+    (user-error "Cannot write key %S to timestamp; timestamps are read-only" key)))
 
 ;; macros
 
