@@ -53,14 +53,16 @@
     ;; Default testfn: eq lookup of symbols.
     (should (equal (map-elt (current-buffer) 'name) (buffer-name)))
     ;; Explicit testfn.
-    (should (equal (map-elt (current-buffer) 'name nil #'equal)
+    (should (equal (with-suppressed-warnings ((callargs map-elt))
+                     (map-elt (current-buffer) 'name nil #'equal))
                    (buffer-name)))
     ;; TESTFN comparison runs against the key symbols.
     (let* ((keys nil)
-           (seen (map-elt (current-buffer) 'size
-                          :sentinel
-                          (lambda (k _key)
-                            (push k keys) nil))))
+           (seen (with-suppressed-warnings ((callargs map-elt))
+                   (map-elt (current-buffer) 'size
+                            :sentinel
+                            (lambda (k _key)
+                              (push k keys) nil)))))
       ;; Non-matching testfn falls back to DEFAULT but sees all keys.
       (should (eq seen :sentinel))
       (should (equal keys
@@ -362,7 +364,7 @@ objects are identities, not snapshots; use `map-pairs' instead."
   (let ((obj (map-extras-tests-person :name "ada" :age 36)))
     (should (= (map-length obj) 2))
     (should (equal (sort (map-keys obj) #'string<) '(age name)))
-    (should (equal (map-filter (lambda (k v) (stringp v)) obj)
+    (should (equal (map-filter (lambda (_k v) (stringp v)) obj)
                    '((name . "ada"))))))
 
 ;;; URL maps
@@ -493,12 +495,13 @@ mirroring what `map-do' exposes."
     (should-error (map-put! obj '--internal 5) :type 'user-error)
     (should-error (map-put! obj 'no-such-slot 5) :type 'user-error)))
 
+(defclass map-extras-tests-shaped ()
+  ((x :initform 1)))
+(cl-defmethod map-do (function (_obj map-extras-tests-shaped))
+  (funcall function :custom t))
+
 (ert-deftest map-extras-eieio-class-method-wins ()
   "A class-specific map-do beats the generic EIEIO method."
-  (defclass map-extras-tests-shaped ()
-    ((x :initform 1)))
-  (cl-defmethod map-do (function (_obj map-extras-tests-shaped))
-    (funcall function :custom t))
   (let (pairs)
     (map-do (lambda (k v) (push (cons k v) pairs)) (map-extras-tests-shaped))
     (should (equal pairs '((:custom . t))))))
