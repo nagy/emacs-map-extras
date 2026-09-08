@@ -185,7 +185,26 @@ Keys are compared with TESTFN, defaulting to `eq'."
 
 ;;; Keymaps
 
-;; ...
+;; A keymap is a list, so a plain `keymap' type specializer would lose
+;; method dispatch to map.el's `list' method.  Registering a derived
+;; type gives it its own dispatch tag; predicates generalizers rank
+;; above the built-in types.
+(cl-deftype map-extras-keymap () '(satisfies keymapp))
+
+(cl-defmethod mapp ((_map map-extras-keymap))
+  t)
+
+(cl-defmethod map-do (function (map map-extras-keymap))
+  ;; Shallow iteration: prefix keys show up as keymap bindings.
+  (map-keymap (lambda (event binding)
+                (funcall function event binding))
+              map))
+
+(cl-defmethod map-elt ((map map-extras-keymap) key &optional default testfn)
+  (map-extras--elt key map default testfn))
+
+(cl-defmethod map-put! ((map map-extras-keymap) key value &optional _testfn)
+  (define-key map (vector key) value))
 
 ;;; Marker
 

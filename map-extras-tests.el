@@ -122,6 +122,41 @@
       (should (= (map-elt marker 'position) 5))
       (should (eq (map-elt marker 'buffer) (current-buffer))))))
 
+;;; Keymap maps
+
+(defvar map-extras-tests-keymap (make-sparse-keymap))
+(define-key map-extras-tests-keymap "a" 'map-extras-test-command)
+(define-key map-extras-tests-keymap (kbd "C-c x") 'map-extras-test-cmd2)
+
+(ert-deftest map-extras-mapp-keymap ()
+  "`mapp' recognizes keymaps."
+  (should (mapp map-extras-tests-keymap)))
+
+(ert-deftest map-extras-keymap-elt ()
+  "`map-elt' looks up single-key bindings."
+  (should (eq (map-elt map-extras-tests-keymap ?a)
+              'map-extras-test-command))
+  (should (eq (map-elt map-extras-tests-keymap ?z :sentinel) :sentinel)))
+
+(ert-deftest map-extras-keymap-do-keys ()
+  "`map-do' visits the defined keys."
+  (let (pairs)
+    (map-do (lambda (k v) (push (cons k v) pairs)) map-extras-tests-keymap)
+    (should (equal (cdr (assq ?a pairs)) 'map-extras-test-command))
+    (should (= (length pairs) 2))))
+
+(ert-deftest map-extras-keymap-keys ()
+  "`map-keys' returns the bound events (via the map-do default)."
+  (should (equal (sort (map-keys map-extras-tests-keymap) #'<)
+                '(3 97)))) ; C-c prefix (binding is a subkeymap), a
+
+(ert-deftest map-extras-keymap-put ()
+  "`map-put!' defines a binding, round-trip through map-elt."
+  (let ((km (make-sparse-keymap)))
+    (map-put! km ?g 'map-extras-g-command)
+    (should (eq (map-elt km ?g) 'map-extras-g-command))
+    (should (eq (lookup-key km (vector ?g)) 'map-extras-g-command))))
+
 ;;; Thread maps
 
 (ert-deftest map-extras-mapp-thread ()
