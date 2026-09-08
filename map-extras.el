@@ -56,6 +56,37 @@ both correct and fast.  Pass an explicit TESTFN (typically
               map)
       default)))
 
+;;;
+;;; Writability and supported operations, per type:
+;;;
+;;; | type    | map-elt keys                     | map-put!        |
+;;; |---------+----------------------------------+-----------------|
+;;; | buffer  | name file-name point size window | name directory  |
+;;; |         | process narrowed directory       |                 |
+;;; |         | major-mode                       |                 |
+;;; | overlay | start end buffer properties      | structural keys;|
+;;; |         |                                  | others = overlay-put |
+;;; | window  | buffer left right point          | read-only       |
+;;; |         | parameters start                 |                 |
+;;; | process | name id plist status buffer      | filter sentinel |
+;;; |         | filter sentinel contact command  |                 |
+;;; |         | mark                             |                 |
+;;; | frame   | name title visible width height  | read-only       |
+;;; |         | selected                         |                 |
+;;; | thread  | name live                        | read-only       |
+;;; | keymap  | single events (shallow)          | define-key      |
+;;; | marker  | position buffer                  | read-only       |
+;;; | url     | type user password host portspec | all keys        |
+;;; |         | filename target attributes       |                 |
+;;; | ts      | year month day hour minute second| read-only       |
+;;; | EIEIO   | public bound slots               | public slots    |
+;;; | struct  | slots via macro                  | opt-in :writable|
+;;;
+;;; `map-copy' and `map-delete' are intentionally unsupported: these
+;;; objects are identities (copying a buffer makes no sense) and their
+;;; attributes are not deletable.  Use `map-pairs' for an alist
+;;; snapshot of the current state.
+;;;
 ;;; Buffer
 
 (cl-defmethod mapp ((_map buffer))

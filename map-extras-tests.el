@@ -297,6 +297,24 @@ lookup path."
   (should-error (map-put! (url-generic-parse-url "https://example.com") 'bogus 1)
                 :type 'user-error))
 
+;;; Derived map.el operations
+
+(ert-deftest map-extras-map-copy-unsupported ()
+  "`map-copy' is intentionally unimplemented for these types:
+objects are identities, not snapshots; use `map-pairs' instead."
+  (should-error (map-copy (point-marker)) :type 'cl-no-applicable-method)
+  (with-temp-buffer
+    (should-error (map-copy (current-buffer)) :type 'cl-no-applicable-method)))
+
+(ert-deftest map-extras-map-pairs-snapshot ()
+  "`map-pairs' returns an alist snapshot of an object's keys."
+  (with-temp-buffer
+    (insert "hi")
+    (let ((snapshot (map-pairs (current-buffer))))
+      (should (consp snapshot))
+      (should (assq 'name snapshot))
+      (should (= (cdr (assq 'size snapshot)) 2)))))
+
 ;;; URL maps
 
 (ert-deftest map-extras-url-elt-and-put ()
