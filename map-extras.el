@@ -261,21 +261,16 @@
 ;; macros
 
 (defmacro map-extras-define-for-struct (struct keys)
+  "Define `map.el' methods for cl-defstruct STRUCT with slots KEYS.
+Each slot must have a STRUCT-<slot> accessor."
   `(progn
      (cl-defmethod mapp ((_map ,struct))
        t)
-     (cl-defmethod map-do #'(map ,struct)
-       ,@(--map `(funcall function ',it (oref map ,it))
+     (cl-defmethod map-do (function (map ,struct))
+       ,@(--map `(funcall function ',it (,(intern (format "%s-%s" struct it)) map))
                 keys))
      (cl-defmethod map-elt ((map ,struct) key &optional default)
-       (let ((retsym 'map-extras--retsym))
-         (ignore retsym)
-         (or (cl-block retsym
-               (map-do (lambda (k v)
-                         (when (eq k key)
-                           (cl-return-from retsym v)))
-                       map))
-             default)))))
+       (map-extras--elt key map default))))
 
 (cl-defstruct map-transformer -inner key-to key-from)
 (defun map-transformer-get-map (map)
