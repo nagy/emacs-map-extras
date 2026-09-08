@@ -316,32 +316,35 @@ Each slot must have a STRUCT-<slot> accessor."
      (cl-defmethod map-elt ((map ,struct) key &optional default testfn)
        (map-extras--elt key map default testfn))))
 
-(cl-defstruct map-transformer -inner key-to key-from)
-(defun map-transformer-get-map (map)
-  (let ((inner (map-transformer--inner map)))
+(cl-defstruct map-extras-transformer -inner key-to key-from)
+
+(defun map-extras--transformer-map (transformer)
+  "Return the inner map of TRANSFORMER.
+An inner map given as a symbol is dereferenced via `symbol-value'."
+  (let ((inner (map-extras-transformer--inner transformer)))
     (if (symbolp inner)
         (symbol-value inner)
       inner)))
-(cl-defmethod mapp ((_map map-transformer))
+(cl-defmethod mapp ((_map map-extras-transformer))
   t)
-(cl-defmethod map-elt ((map map-transformer) key &optional default testfn)
-  (map-elt (map-transformer-get-map map)
-           (funcall (map-transformer-key-from map) map key)
+(cl-defmethod map-elt ((map map-extras-transformer) key &optional default testfn)
+  (map-elt (map-extras--transformer-map map)
+           (funcall (map-extras-transformer-key-from map) map key)
            default testfn))
-(cl-defmethod map-keys ((map map-transformer))
+(cl-defmethod map-keys ((map map-extras-transformer))
   (mapcar (lambda (key)
-            (funcall (map-transformer-key-to map) map key))
-          (map-keys (map-transformer-get-map map))))
+            (funcall (map-extras-transformer-key-to map) map key))
+          (map-keys (map-extras--transformer-map map))))
 
-(cl-defmethod map-do (function (map map-transformer))
+(cl-defmethod map-do (function (map map-extras-transformer))
   (map-do (lambda (key value)
             (funcall function
-                     (funcall (map-transformer-key-from map) map key)
+                     (funcall (map-extras-transformer-key-from map) map key)
                      value))
-          (map-transformer-get-map map)))
+          (map-extras--transformer-map map)))
 
-(defun make-map-transformer-via-extension (map extension)
-  (make-map-transformer
+(defun map-extras-make-transformer-via-extension (map extension)
+  (make-map-extras-transformer
    :-inner map
    ;; Strip EXTENSION without `string-remove-suffix' (subr-x), which
    ;; is not available at runtime in byte-compiled installs.

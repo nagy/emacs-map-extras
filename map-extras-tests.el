@@ -317,38 +317,52 @@
     (map-do (lambda (k v) (push (cons k v) kv)) thing)
     (should (equal kv '((beta . 2) (alpha . 1))))))
 
-;;; map-transformer
+;;; map-extras-transformer
 
 (ert-deftest map-extras-transformer-keys ()
-  "`map-transformer' appends the extension to inner keys."
+  "`map-extras-transformer' appends the extension to inner keys."
   (let ((transformer
-         (make-map-transformer-via-extension
+         (map-extras-make-transformer-via-extension
           (list (cons "foo-bar" 1) (cons "foo-baz" 2)) "-bar")))
     (should (equal (map-keys transformer)
                    '("foo-bar-bar" "foo-baz-bar")))))
 
 (ert-deftest map-extras-transformer-elt ()
-  "`map-transformer' translates lookup keys via key-from."
+  "`map-extras-transformer' translates lookup keys via key-from."
   (let ((transformer
-         (make-map-transformer-via-extension
+         (map-extras-make-transformer-via-extension
           (list (cons "foo-bar" 1)) "-bar")))
     (should (= (map-elt transformer "foo-bar-bar") 1))
     (should (eq (map-elt transformer "nope" :dflt) :dflt))))
 
 (ert-deftest map-extras-transformer-do ()
-  "`map-do' over a map-transformer translates keys."
+  "`map-do' over a map-extras-transformer translates keys."
   (let ((transformer
-         (make-map-transformer-via-extension
+         (map-extras-make-transformer-via-extension
           (list (cons "foo-bar" 1)) "-bar"))
         (kv nil))
     (map-do (lambda (k v) (push (cons k v) kv)) transformer)
     (should (equal kv '(("foo" . 1))))))
 
 (ert-deftest map-extras-transformer-mapp ()
-  "`mapp' recognizes map-transformer objects."
-  (should (mapp (make-map-transformer :-inner (list (cons "a" 1))
-                                       :key-from #'identity
-                                       :key-to #'identity))))
+  "`mapp' recognizes map-extras-transformer objects."
+  (should (mapp (make-map-extras-transformer
+                 :-inner (list (cons "a" 1))
+                 :key-from #'identity
+                 :key-to #'identity))))
+
+(ert-deftest map-extras-transformer-make ()
+  "`make-map-extras-transformer' builds a working transformer."
+  (let ((tr (make-map-extras-transformer
+             :-inner (list (cons "foo-bar" 1))
+             :key-from (lambda (_map key)
+                         (if (string-suffix-p "-bar" key)
+                             (substring key 0 (- (length key) 4))
+                           key))
+             :key-to (lambda (_map key) (concat key "-bar")))))
+    (should (map-extras-transformer-p tr))
+    (should (= (map-elt tr "foo-bar-bar") 1))
+    (should (= (map-elt (map-extras--transformer-map tr) "foo-bar") 1))))
 
 ;;; Generic EIEIO maps
 
