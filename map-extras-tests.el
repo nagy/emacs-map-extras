@@ -66,7 +66,7 @@
       (should (equal keys
                      (reverse '(name file-name point size window
                                      process narrowed directory
-                                     major-mode hash)))))))
+                                     major-mode)))))))
 
 (ert-deftest map-extras-buffer-do-keys ()
   "`map-do' visits every documented buffer key."
@@ -78,6 +78,38 @@
       (should (member 'point keys))
       (should (member 'major-mode keys))
       (should (member 'directory keys)))))
+
+(ert-deftest map-extras-buffer-do-skips-expensive-keys ()
+  "`map-elt' on a buffer never computes `buffer-hash'."
+  (with-temp-buffer
+    (insert "x")
+    (cl-letf (((symbol-function 'buffer-hash)
+               (lambda (_buffer) (error "buffer-hash must not be called"))))
+      (should (equal (map-elt (current-buffer) 'name) (buffer-name)))
+      (should (= (map-elt (current-buffer) 'size) 1))
+      (should-not (memq 'hash
+                        (let (keys)
+                          (map-do (lambda (k _v) (push k keys))
+                                  (current-buffer))
+                          keys))))))
+
+(ert-deftest map-extras-window-do-skips-end ()
+  "`map-do' on a window never calls `window-end'."
+  (with-selected-window (selected-window)
+    (cl-letf (((symbol-function 'window-end)
+               (lambda (_window &optional _update) (error "window-end must not be called"))))
+      (should (map-elt (selected-window) 'buffer))
+      (should (integerp (map-elt (selected-window) 'start))))))
+
+(ert-deftest map-extras-process-do-skips-attributes ()
+  "`map-do' on a process never calls `process-attributes'."
+  (let ((proc (start-process "map-extras-attr" nil "true")))
+    (unwind-protect
+        (cl-letf (((symbol-function 'process-attributes)
+                   (lambda (_pid) (error "process-attributes must not be called"))))
+          (should (equal (map-elt proc 'name) "map-extras-attr"))
+          (should (symbolp (map-elt proc 'status))))
+      (delete-process proc))))
 
 ;;; Marker maps
 

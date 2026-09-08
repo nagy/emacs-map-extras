@@ -52,6 +52,9 @@ Keys are compared with TESTFN, defaulting to `eq'."
   t)
 
 (cl-defmethod map-do (function (map buffer))
+  ;; Only cheap keys here: `map-elt' and `map-keys' iterate this, so
+  ;; expensive attributes (e.g. `buffer-hash') must not be computed on
+  ;; every query.  Call `buffer-hash' directly when needed.
   (funcall function 'name (buffer-name map))
   (funcall function 'file-name (buffer-file-name map))
   (funcall function 'point (with-current-buffer map (point)))
@@ -60,8 +63,7 @@ Keys are compared with TESTFN, defaulting to `eq'."
   (funcall function 'process (get-buffer-process map))
   (funcall function 'narrowed (with-current-buffer map (buffer-narrowed-p)))
   (funcall function 'directory (buffer-local-value 'default-directory map))
-  (funcall function 'major-mode (buffer-local-value 'major-mode map))
-  (funcall function 'hash (buffer-hash map)))
+  (funcall function 'major-mode (buffer-local-value 'major-mode map)))
 
 
 (cl-defmethod map-elt ((map buffer) key &optional default testfn)
@@ -73,13 +75,14 @@ Keys are compared with TESTFN, defaulting to `eq'."
   t)
 
 (cl-defmethod map-do (function (map window))
+  ;; `window-end' may force redisplay, so it is deliberately excluded
+  ;; from the iteration; call `window-end' directly when needed.
   (funcall function 'buffer (window-buffer map))
   (funcall function 'left (window-left map))
   (funcall function 'right (window-right map))
   (funcall function 'point (window-point map))
   (funcall function 'parameters (window-parameters map))
-  (funcall function 'start (window-start map))
-  (funcall function 'end (window-end map)))
+  (funcall function 'start (window-start map)))
 ;; (funcall function 'display-table (window-display-table map))
 
 
@@ -101,8 +104,8 @@ Keys are compared with TESTFN, defaulting to `eq'."
   (funcall function 'sentinel (process-sentinel map))
   (funcall function 'contact (process-contact map))
   (funcall function 'command (process-command map))
-  (funcall function 'attributes (and (process-id map)
-                                     (process-attributes (process-id map))))
+  ;; `process-attributes' is a system call, deliberately excluded from
+  ;; the iteration; call it directly when needed.
   (funcall function 'mark (process-mark map)))
 ;; (funcall function 'environment
 ;;          (--map (let ((splitted (string-split it "=")))
