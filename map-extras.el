@@ -26,7 +26,13 @@
 ;;
 ;;; Commentary:
 ;;
-;;  More configuration for built-in map.el .
+;;  More configuration for built-in map.el.
+;;
+;;  Teaches the map.el protocol to buffers, overlays, windows,
+;;  processes, frames, threads, keymaps, markers, `url' objects,
+;;  `ts' timestamps and EIEIO objects.  Lookups default to `eq'
+;;  because every exposed key is a symbol or integer; pass TESTFN
+;;  explicitly for anything else.
 ;;
 ;;; Code:
 
@@ -37,7 +43,13 @@
 
 (defun map-extras--elt (key map default &optional testfn)
   "Look up KEY in MAP, returning DEFAULT when absent.
-Keys are compared with TESTFN, defaulting to `eq'."
+Keys are compared with TESTFN, defaulting to `eq'.
+
+Unlike map.el, which picks the test function per map type (`equal'
+for alists, `eq' for plists), this package always defaults to `eq':
+all keys it exposes are symbols or small integers, for which `eq' is
+both correct and fast.  Pass an explicit TESTFN (typically
+`equal') for exotic keys such as string overlay properties."
   (let ((match (or testfn #'eq)))
     (catch 'map-extras--found
       (map-do (lambda (k v)
