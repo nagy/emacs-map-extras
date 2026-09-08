@@ -396,6 +396,13 @@
     (should (equal (eieio-oref obj 'name) "grace"))
     (should (equal (map-elt obj 'name) "grace"))))
 
+(ert-deftest map-extras-eieio-put-rejects-hidden-and-unknown-slots ()
+  "`map-put!' rejects internal `--*' and unknown slot names,
+mirroring what `map-do' exposes."
+  (let ((obj (map-extras-tests-person)))
+    (should-error (map-put! obj '--internal 5) :type 'user-error)
+    (should-error (map-put! obj 'no-such-slot 5) :type 'user-error)))
+
 (ert-deftest map-extras-eieio-class-method-wins ()
   "A class-specific map-do beats the generic EIEIO method."
   (defclass map-extras-tests-shaped ()

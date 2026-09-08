@@ -373,7 +373,13 @@ An inner map given as a symbol is dereferenced via `symbol-value'."
   (map-extras--elt key map default testfn))
 
 (cl-defmethod map-put! ((map eieio-default-superclass) key value &optional _testfn)
-  (setf (eieio-oref map key) value))
+  ;; Mirror the read path: `map-do' never exposes `--*' slots or
+  ;; unknown slot names, so writing them through `map-put!' is an
+  ;; error too.
+  (if (and (slot-exists-p map key)
+           (not (string-prefix-p "--" (symbol-name key))))
+      (setf (eieio-oref map key) value)
+    (user-error "Cannot write key %S to %s" key (eieio-object-class map))))
 
 ;;; seq.el integrations
 
