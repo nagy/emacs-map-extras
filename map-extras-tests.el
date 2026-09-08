@@ -443,7 +443,7 @@ objects are identities, not snapshots; use `map-pairs' instead."
 
 (ert-deftest map-extras-ts-put-errors ()
   "`map-put!' on a ts timestamp signals `user-error' (read-only)."
-  (skip-unless (require 'ts nil t))
+  (require 'ts)
   (should-error (map-put! (ts-parse "2026-01-02 03:04:05") 'year 2000)
                 :type 'user-error))
 

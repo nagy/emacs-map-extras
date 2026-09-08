@@ -30,6 +30,8 @@
         }:
         let
           emacsPackages = pkgs.emacsPackages;
+          # Emacs with `ts' on the load path, for the test suite.
+          emacs-for-tests = emacsPackages.emacsWithPackages (epkgs: [ epkgs.ts ]);
           inherit (emacsPackages) melpaBuild;
         in
         {
@@ -45,10 +47,10 @@
             turnCompilationWarningToError = true;
 
             doCheck = true;
-            nativeCheckInputs = [ pkgs.emacs ];
+            nativeCheckInputs = [ emacs-for-tests ];
             checkPhase = ''
               runHook preCheck
-              emacs --batch -Q \
+              ${emacs-for-tests}/bin/emacs --batch -Q \
                 -L . \
                 -l map-extras-tests.el \
                 -f ert-run-tests-batch-and-exit
@@ -71,7 +73,7 @@
           packages.default = config.packages.map-extras;
 
           devShells.default = pkgs.mkShell {
-            packages = [ pkgs.emacs ];
+            packages = [ emacs-for-tests ];
           };
         };
     };
