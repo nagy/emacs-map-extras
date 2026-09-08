@@ -131,36 +131,48 @@
 
 ;;; URL
 
-(require 'url-parse)
+;; Deferred like `ts': only define the methods once `url-parse' is
+;; loaded, so requiring `map-extras' stays cheap for users who never
+;; touch `url' objects.
+(eval-when-compile
+  (require 'url-parse)
+  (require 'subr-x))
+(with-eval-after-load 'url-parse
+  (declare-function url-type "url-parse")
+  (declare-function url-user "url-parse")
+  (declare-function url-password "url-parse")
+  (declare-function url-host "url-parse")
+  (declare-function url-portspec "url-parse")
+  (declare-function url-filename "url-parse")
+  (declare-function url-target "url-parse")
+  (declare-function url-attributes "url-parse")
 
-(cl-defmethod mapp ((_map url))
-  t)
+  (cl-defmethod mapp ((_map url))
+    t)
 
-(cl-defmethod map-do (function (map url))
-  (funcall function 'type (url-type map))
-  (funcall function 'user (url-user map))
-  (funcall function 'password (url-password map))
-  (funcall function 'host (url-host map))
-  (funcall function 'portspec (url-portspec map))
-  (funcall function 'filename (url-filename map))
-  (funcall function 'target (url-target map))
-  (funcall function 'attributes (url-attributes map)))
-;; ...
+  (cl-defmethod map-do (function (map url))
+    (funcall function 'type (url-type map))
+    (funcall function 'user (url-user map))
+    (funcall function 'password (url-password map))
+    (funcall function 'host (url-host map))
+    (funcall function 'portspec (url-portspec map))
+    (funcall function 'filename (url-filename map))
+    (funcall function 'target (url-target map))
+    (funcall function 'attributes (url-attributes map)))
 
+  (cl-defmethod map-elt ((map url) key &optional default)
+    (map-extras--elt key map default))
 
-(cl-defmethod map-elt ((map url) key &optional default)
-  (map-extras--elt key map default))
-
-(cl-defmethod map-put! ((map url) key value &optional _testfn)
-  (pcase key
-    ('type (setf (url-type map) value))
-    ('user (setf (url-user map) value))
-    ('password (setf (url-password map) value))
-    ('host (setf (url-host map) value))
-    ('portspec (setf (url-portspec map) value))
-    ('filename (setf (url-filename map) value))
-    ('target (setf (url-target map) value))
-    ('attributes (setf (url-attributes map) value))))
+  (cl-defmethod map-put! ((map url) key value &optional _testfn)
+    (pcase key
+      ('type (setf (url-type map) value))
+      ('user (setf (url-user map) value))
+      ('password (setf (url-password map) value))
+      ('host (setf (url-host map) value))
+      ('portspec (setf (url-portspec map) value))
+      ('filename (setf (url-filename map) value))
+      ('target (setf (url-target map) value))
+      ('attributes (setf (url-attributes map) value)))))
 
 
 ;;; sqlitep
