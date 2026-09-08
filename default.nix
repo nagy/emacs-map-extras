@@ -9,8 +9,10 @@
 
 melpaBuild {
   pname = "map-extras";
-  version = "0-unstable-2025-06-21";
+  version = "0.1";   # matches the Version: header in map-extras.el
   src = lib.cleanSource ./.;
+  # dash: external dependency.
+  # eieio: builtin since Emacs 24 — no emacsPackages attribute exists.
   packageRequires = [
     dash
   ];
