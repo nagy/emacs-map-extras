@@ -274,7 +274,7 @@ Each slot must have a STRUCT-<slot> accessor."
 
 (cl-defstruct map-transformer -inner key-to key-from)
 (defun map-transformer-get-map (map)
-  (let ((inner (oref map -inner)))
+  (let ((inner (map-transformer--inner map)))
     (if (symbolp inner)
         (symbol-value inner)
       inner)))
@@ -282,19 +282,17 @@ Each slot must have a STRUCT-<slot> accessor."
   t)
 (cl-defmethod map-elt ((map map-transformer) key &optional default)
   (map-elt (map-transformer-get-map map)
-           (funcall (oref map key-from) map key)
+           (funcall (map-transformer-key-from map) map key)
            default))
 (cl-defmethod map-keys ((map map-transformer))
   (mapcar (lambda (key)
-            (funcall (oref map key-to) map key))
+            (funcall (map-transformer-key-to map) map key))
           (map-keys (map-transformer-get-map map))))
-  ;; (--map (funcall (oref map key-to) map it)
-  ;;        (map-keys (map-transformer-get-map map)))
 
 (cl-defmethod map-do (function (map map-transformer))
   (map-do (lambda (key value)
             (funcall function
-                     (funcall (oref map key-from) map key)
+                     (funcall (map-transformer-key-from map) map key)
                      value))
           (map-transformer-get-map map)))
 
