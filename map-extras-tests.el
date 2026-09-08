@@ -260,6 +260,24 @@
           (should (symbolp (map-elt proc 'status))))
       (delete-process proc))))
 
+(ert-deftest map-extras-buffer-put-unknown-key-errors ()
+  "`map-put!' on a buffer rejects unknown keys instead of ignoring them."
+  (with-temp-buffer
+    (should-error (map-put! (current-buffer) 'bogus 1) :type 'user-error)))
+
+(ert-deftest map-extras-process-put-unknown-key-errors ()
+  "`map-put!' on a process rejects unknown keys instead of ignoring them."
+  (let ((proc (start-process "map-extras-put-err" nil "true")))
+    (unwind-protect
+        (should-error (map-put! proc 'bogus 1) :type 'user-error)
+      (delete-process proc))))
+
+(ert-deftest map-extras-url-put-unknown-key-errors ()
+  "`map-put!' on a url object rejects unknown keys."
+  (require 'url-parse)
+  (should-error (map-put! (url-generic-parse-url "https://example.com") 'bogus 1)
+                :type 'user-error))
+
 ;;; URL maps
 
 (ert-deftest map-extras-url-elt-and-put ()

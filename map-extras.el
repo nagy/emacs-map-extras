@@ -74,7 +74,9 @@ Keys are compared with TESTFN, defaulting to `eq'."
   ;; compatibility but unused, as in the `url' methods.
   (pcase key
     ('name (with-current-buffer map (rename-buffer value)))
-    ('directory (with-current-buffer map (cd value)))))
+    ('directory (with-current-buffer map (cd value)))
+    ;; Unknown keys would otherwise be silently dropped.
+    (_ (user-error "Cannot write key %S to buffer %S" key (buffer-name map)))))
 
 ;;; Overlay
 
@@ -150,7 +152,8 @@ Keys are compared with TESTFN, defaulting to `eq'."
 (cl-defmethod map-put! ((map process) key value &optional _testfn)
   (pcase key
     ('filter (set-process-filter map value))
-    ('sentinel (set-process-sentinel map value))))
+    ('sentinel (set-process-sentinel map value))
+    (_ (user-error "Cannot write key %S to process %S" key (process-name map)))))
 
 ;;; Frame
 
@@ -268,7 +271,8 @@ Keys are compared with TESTFN, defaulting to `eq'."
       ('portspec (setf (url-portspec map) value))
       ('filename (setf (url-filename map) value))
       ('target (setf (url-target map) value))
-      ('attributes (setf (url-attributes map) value)))))
+      ('attributes (setf (url-attributes map) value))
+      (_ (user-error "Cannot write key %S to url %S" key (url-host map))))))
 
 
 ;;; sqlitep
