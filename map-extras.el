@@ -7,7 +7,7 @@
 ;; Created: January 31, 2025
 ;; Version: 0.1
 ;; Homepage: https://github.com/nagy/emacs-map-extras
-;; Package-Requires: ((emacs "27.1") dash)
+;; Package-Requires: ((emacs "27.1") dash eieio)
 ;;
 ;; This file is NOT part of GNU Emacs.
 ;;
@@ -77,7 +77,7 @@
   (funcall function 'parameters (window-parameters map))
   (funcall function 'start (window-start map))
   (funcall function 'end (window-end map)))
-  ;; (funcall function 'display-table (window-display-table map))
+;; (funcall function 'display-table (window-display-table map))
 
 
 (cl-defmethod map-elt ((map window) key &optional default)
@@ -101,12 +101,12 @@
   (funcall function 'attributes (and (process-id map)
                                      (process-attributes (process-id map))))
   (funcall function 'mark (process-mark map)))
-  ;; (funcall function 'environment
-  ;;          (--map (let ((splitted (string-split it "=")))
-  ;;                   (cons (car splitted)
-  ;;                         (substring it (1+ (length (car splitted))))))
-  ;;                 (pcase-buffer--get-environment map))
-  ;;          )
+;; (funcall function 'environment
+;;          (--map (let ((splitted (string-split it "=")))
+;;                   (cons (car splitted)
+;;                         (substring it (1+ (length (car splitted))))))
+;;                 (pcase-buffer--get-environment map))
+;;          )
 
 
 (cl-defmethod map-elt ((map process) key &optional default)
@@ -145,7 +145,7 @@
   (funcall function 'filename (url-filename map))
   (funcall function 'target (url-target map))
   (funcall function 'attributes (url-attributes map)))
-  ;; ...
+;; ...
 
 
 (cl-defmethod map-elt ((map url) key &optional default)
@@ -168,53 +168,6 @@
 
 ;;; obarray
 
-;;;  JSONrpc
-
-;; (cl-defmethod mapp ((map jsonrpc-connection))
-;; t)
-
-;; (cl-defmethod map-do (function (map jsonrpc-connection))
-;; (funcall function 'name (jsonrpc-name map))
-;; (funcall function 'last-error (jsonrpc-last-error map))
-;; (funcall function 'running (jsonrpc-running-p map))
-;; (funcall function 'request-dispatcher (jsonrpc--request-dispatcher map))
-;; (funcall function 'notification-dispatcher (jsonrpc--notification-dispatcher map))
-;; )
-
-;; (cl-defmethod map-elt ((map jsonrpc-connection) key &optional default)
-;; (let ((retsym (eval-when-compile (gensym "map-elt--process"))))
-;; (or (cl-block retsym
-;; (map-do (lambda (k v)
-;; (when (eq k key)
-;; (cl-return-from retsym v)))
-;; map))
-;; default)))
-
-;;; gptel
-
-;; (cl-defmethod mapp ((map gptel-backend))
-;; t)
-
-;; (cl-defmethod map-do (function (map gptel-backend))
-;; (funcall function 'name (gptel-backend-name map))
-;; (funcall function 'host (gptel-backend-host map))
-;; (funcall function 'header (gptel-backend-header map))
-;; (funcall function 'protocol (gptel-backend-protocol map))
-;; (funcall function 'stream (gptel-backend-stream map))
-;; (funcall function 'endpoint (gptel-backend-endpoint map))
-;; ;; key...
-;; (funcall function 'models (gptel-backend-models map))
-;; )
-
-;; (cl-defmethod map-elt ((map gptel-backend) key &optional default)
-;; (let ((retsym (eval-when-compile (gensym "map-elt--process"))))
-;; (or (cl-block retsym
-;; (map-do (lambda (k v)
-;; (when (eq k key)
-;; (cl-return-from retsym v)))
-;; map))
-;; default)))
-
 ;; Non-Emacs
 ;;; Ts
 (with-eval-after-load 'ts
@@ -236,27 +189,6 @@
 
   (cl-defmethod map-elt ((map ts) key &optional default)
     (map-extras--elt key map default)))
-
-;;;; Magit section
-;; (with-eval-after-load 'magit-section
-;;   (cl-defmethod mapp ((map magit-section))
-;;     t)
-;;   (cl-defmethod map-do (function (map magit-section))
-;;     (funcall function 'type (oref map type))
-;;     (funcall function 'value (oref map value))
-;;     (funcall function 'parent (oref map parent))
-;;     (funcall function 'children (oref map children))
-;;     (funcall function 'start (oref map start))
-;;     (funcall function 'end (oref map end))
-;;     )
-;;   (cl-defmethod map-elt ((map magit-section) key &optional default)
-;;     (let ((retsym (eval-when-compile (gensym "map-elt--process"))))
-;;       (or (cl-block retsym
-;;             (map-do (lambda (k v)
-;;                       (when (eq k key)
-;;                         (cl-return-from retsym v)))
-;;                     map))
-;;           default))))
 
 ;; macros
 
