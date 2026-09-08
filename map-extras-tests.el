@@ -206,5 +206,35 @@
                                        :key-from #'identity
                                        :key-to #'identity))))
 
+;;; map-put!
+
+(ert-deftest map-extras-buffer-put-name ()
+  "`map-put!' on buffer name renames the buffer."
+  (with-temp-buffer
+    (map-put! (current-buffer) 'name "map-extras-renamed")
+    (should (equal (buffer-name) "map-extras-renamed"))
+    (should (equal (map-elt (current-buffer) 'name)
+                   "map-extras-renamed"))))
+
+(ert-deftest map-extras-buffer-put-directory ()
+  "`map-put!' on buffer directory changes `default-directory'."
+  (with-temp-buffer
+    (let ((dir (expand-file-name "/")))
+      (map-put! (current-buffer) 'directory dir)
+      (should (equal (map-elt (current-buffer) 'directory) dir)))))
+
+(ert-deftest map-extras-process-put-filter-and-sentinel ()
+  "`map-put!' installs a process filter and sentinel."
+  (let ((proc (start-process "map-extras-put" nil "true")))
+    (unwind-protect
+        (progn
+          (map-put! proc 'filter #'ignore)
+          (should (eq (process-filter proc) #'ignore))
+          (should (eq (map-elt proc 'filter) #'ignore))
+          (map-put! proc 'sentinel #'ignore)
+          (should (eq (process-sentinel proc) #'ignore))
+          (should (eq (map-elt proc 'sentinel) #'ignore)))
+      (delete-process proc))))
+
 (provide 'map-extras-tests)
 ;;; map-extras-tests.el ends here

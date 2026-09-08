@@ -69,6 +69,13 @@ Keys are compared with TESTFN, defaulting to `eq'."
 (cl-defmethod map-elt ((map buffer) key &optional default testfn)
   (map-extras--elt key map default testfn))
 
+(cl-defmethod map-put! ((map buffer) key value &optional _testfn)
+  ;; Keys are matched by `pcase'; TESTFN is accepted for protocol
+  ;; compatibility but unused, as in the `url' methods.
+  (pcase key
+    ('name (with-current-buffer map (rename-buffer value)))
+    ('directory (with-current-buffer map (cd value)))))
+
 ;;; Window
 
 (cl-defmethod mapp ((_map window))
@@ -117,6 +124,11 @@ Keys are compared with TESTFN, defaulting to `eq'."
 
 (cl-defmethod map-elt ((map process) key &optional default testfn)
   (map-extras--elt key map default testfn))
+
+(cl-defmethod map-put! ((map process) key value &optional _testfn)
+  (pcase key
+    ('filter (set-process-filter map value))
+    ('sentinel (set-process-sentinel map value))))
 
 ;;; Keymaps
 
