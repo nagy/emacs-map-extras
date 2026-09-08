@@ -33,6 +33,7 @@
 (require 'map)
 
 (require 'dash)
+(require 'eieio)
 
 ;;; Buffer
 
@@ -49,8 +50,8 @@
   (funcall function 'narrowed (with-current-buffer map (buffer-narrowed-p)))
   (funcall function 'directory (buffer-local-value 'default-directory map))
   (funcall function 'major-mode (buffer-local-value 'major-mode map))
-  (funcall function 'hash (buffer-hash map))
-  )
+  (funcall function 'hash (buffer-hash map)))
+
 
 (cl-defmethod map-elt ((map buffer) key &optional default)
   (let ((retsym (eval-when-compile (gensym "map-elt--buffer"))))
@@ -74,9 +75,9 @@
   (funcall function 'point (window-point map))
   (funcall function 'parameters (window-parameters map))
   (funcall function 'start (window-start map))
-  (funcall function 'end (window-end map))
+  (funcall function 'end (window-end map)))
   ;; (funcall function 'display-table (window-display-table map))
-  )
+
 
 (cl-defmethod map-elt ((map window) key &optional default)
   (let ((retsym (eval-when-compile (gensym "map-elt--window"))))
@@ -105,14 +106,14 @@
   (funcall function 'command (process-command map))
   (funcall function 'attributes (and (process-id map)
                                      (process-attributes (process-id map))))
-  (funcall function 'mark (process-mark map))
+  (funcall function 'mark (process-mark map)))
   ;; (funcall function 'environment
   ;;          (--map (let ((splitted (string-split it "=")))
   ;;                   (cons (car splitted)
   ;;                         (substring it (1+ (length (car splitted))))))
   ;;                 (pcase-buffer--get-environment map))
   ;;          )
-  )
+
 
 (cl-defmethod map-elt ((map process) key &optional default)
   (let ((retsym (eval-when-compile (gensym "map-elt--process"))))
@@ -135,8 +136,8 @@
 
 (cl-defmethod map-do (function (marker marker))
   (funcall function 'position (marker-position marker))
-  (funcall function 'buffer (marker-buffer marker))
-  )
+  (funcall function 'buffer (marker-buffer marker)))
+
 
 (cl-defmethod map-elt ((marker marker) key &optional default)
   (let ((retsym (eval-when-compile (gensym "map-elt--process"))))
@@ -150,6 +151,8 @@
 
 ;;; URL
 
+(require 'url-parse)
+
 (cl-defmethod mapp ((_map url))
   t)
 
@@ -161,9 +164,9 @@
   (funcall function 'portspec (url-portspec map))
   (funcall function 'filename (url-filename map))
   (funcall function 'target (url-target map))
-  (funcall function 'attributes (url-attributes map))
+  (funcall function 'attributes (url-attributes map)))
   ;; ...
-  )
+
 
 (cl-defmethod map-elt ((map url) key &optional default)
   (let ((retsym (eval-when-compile (gensym "map-elt--window"))))
@@ -184,8 +187,8 @@
     ('portspec (setf (url-portspec map) value))
     ('filename (setf (url-filename map) value))
     ('target (setf (url-target map) value))
-    ('attributes (setf (url-attributes map) value))
-    ))
+    ('attributes (setf (url-attributes map) value))))
+
 
 ;;; sqlitep
 ;;; sqlite-statements seq integration
@@ -256,8 +259,8 @@
     (funcall function 'day (ts-day map))
     (funcall function 'hour (ts-hour map))
     (funcall function 'minute (ts-minute map))
-    (funcall function 'second (ts-second map))
-    )
+    (funcall function 'second (ts-second map)))
+
   (cl-defmethod map-elt ((map ts) key &optional default)
     (let ((retsym (eval-when-compile (gensym "map-elt--process"))))
       (ignore retsym)
@@ -308,92 +311,92 @@
                        map))
              default)))))
 
-;; file handlers
-(defvar map--fileprefix-alist nil)
-(defun map-filename-get-map (filename)
-  (cl-loop for x in map--fileprefix-alist
-           when (string-prefix-p (car x) filename)
-           return (cdr x)))
+;; ;; file handlers
+;; (defvar map--fileprefix-alist nil)
+;; (defun map-filename-get-map (filename)
+;;   (cl-loop for x in map--fileprefix-alist
+;;            when (string-prefix-p (car x) filename)
+;;            return (cdr x)))
 
-(defun map-file-name-handler (op &rest args)
-  (let ((handlers `((unhandled-file-name-directory . (lambda (&rest args)
-                                                       nil))
-                    (file-writable-p . (lambda (&rest args)
-                                         nil))
-                    (file-readable-p . (lambda (filename)
-                                         (file-exists-p filename)
-                                         ))
-                    (file-directory-p . (lambda (filename)
-                                          ;; only supports mount points placed at root for now
-                                          (string= "/" (file-name-directory filename))
-                                          ))
-                    (file-regular-p . (lambda (filename)
-                                        ;; only supports mount points placed at root for now
-                                        (let* ((split (s-split "/" filename))
-                                               (depth (length split))
-                                               (lastpart (car (last split))))
-                                          (when (= 3 depth)
-                                            (let ((map (map-filename-get-map filename)))
-                                              (not (not (member lastpart (map-keys map)))))))))
-                    (file-exists-p . (lambda (file)
-                                       (or (file-regular-p file)
-                                           (file-directory-p file))))
-                    (copy-file . (lambda (file newname ok-if-already-exists &rest _args)
-                                   (with-temp-buffer
-                                     (insert-file-contents file)
-                                     (unless ok-if-already-exists
-                                       (when (file-exists-p newname)
-                                         (signal 'file-already-exists `("File already exists" ,newname))))
-                                     (write-region (point-min) (point-max) newname))
-                                   ))
-                    (insert-directory . (lambda (dir &rest args)
-                                          (insert "total 0\n")
-                                          (cl-loop for file in (directory-files dir)
-                                                   do
-                                                   (insert (format "-r--r--r-- 1 0 Mar  1 20:00 %s\n" file)))))
-                    (directory-files . (lambda (dir _full match &rest args)
-                                         (let ((map (map-filename-get-map dir)))
-                                           (--filter (if match (string-match-p match it) t)
-                                                     (append (list "." "..")
-                                                             (map-keys map)
-                                                             )))))
-                    (insert-file-contents . (lambda (filename visit beg end replace)
-                                              (when replace
-                                                (erase-buffer))
-                                              (when visit
-                                                (setq buffer-file-name filename)
-                                                (set-buffer-modified-p nil)
-                                                (set-buffer-multibyte t))
-                                              (when-let* ((map (map-filename-get-map filename))
-                                                          (split (s-split "/" filename))
-                                                          (depth (length split))
-                                                          (lastpart (car (last split)))
-                                                          (obj (or (gather (map-elt map lastpart)) []))
-                                                          (str (with-temp-buffer
-                                                                 (json-insert obj)
-                                                                 ;; Do roundabout with `json-insert' to handle utf-8 multibytes correctly.
-                                                                 (buffer-string))))
-                                                (save-excursion
-                                                  (setq-local nagy-list--data (map-elt map lastpart))
-                                                  (insert str))
-                                                (format-decode nil (+ 2 (buffer-size)) visit)
-                                                (list filename (+ 2 (length str))))))
-                    (file-name-all-completions . (lambda (file directory)
-                                                   (nreverse
-                                                    (cl-loop for f in (directory-files directory)
-                                                             when (string-prefix-p file f)
-                                                             collect
-                                                             (if (file-directory-p f)
-                                                                 (concat f "/")
-                                                               f))))))))
-    (if-let* ((it (alist-get op handlers)))
-        (apply it args)
-      (let ((inhibit-file-name-handlers
-             (cons 'map-file-name-handler
-                   (and (eq inhibit-file-name-operation op)
-                        inhibit-file-name-handlers)))
-            (inhibit-file-name-operation op))
-        (apply op args)))))
+;; (defun map-file-name-handler (op &rest args)
+;;   (let ((handlers `((unhandled-file-name-directory . (lambda (&rest args)
+;;                                                        nil))
+;;                     (file-writable-p . (lambda (&rest args)
+;;                                          nil))
+;;                     (file-readable-p . (lambda (filename)
+;;                                          (file-exists-p filename)
+;;                                          ))
+;;                     (file-directory-p . (lambda (filename)
+;;                                           ;; only supports mount points placed at root for now
+;;                                           (string= "/" (file-name-directory filename))
+;;                                           ))
+;;                     (file-regular-p . (lambda (filename)
+;;                                         ;; only supports mount points placed at root for now
+;;                                         (let* ((split (s-split "/" filename))
+;;                                                (depth (length split))
+;;                                                (lastpart (car (last split))))
+;;                                           (when (= 3 depth)
+;;                                             (let ((map (map-filename-get-map filename)))
+;;                                               (not (not (member lastpart (map-keys map)))))))))
+;;                     (file-exists-p . (lambda (file)
+;;                                        (or (file-regular-p file)
+;;                                            (file-directory-p file))))
+;;                     (copy-file . (lambda (file newname ok-if-already-exists &rest _args)
+;;                                    (with-temp-buffer
+;;                                      (insert-file-contents file)
+;;                                      (unless ok-if-already-exists
+;;                                        (when (file-exists-p newname)
+;;                                          (signal 'file-already-exists `("File already exists" ,newname))))
+;;                                      (write-region (point-min) (point-max) newname))
+;;                                    ))
+;;                     (insert-directory . (lambda (dir &rest args)
+;;                                           (insert "total 0\n")
+;;                                           (cl-loop for file in (directory-files dir)
+;;                                                    do
+;;                                                    (insert (format "-r--r--r-- 1 0 Mar  1 20:00 %s\n" file)))))
+;;                     (directory-files . (lambda (dir _full match &rest args)
+;;                                          (let ((map (map-filename-get-map dir)))
+;;                                            (--filter (if match (string-match-p match it) t)
+;;                                                      (append (list "." "..")
+;;                                                              (map-keys map)
+;;                                                              )))))
+;;                     (insert-file-contents . (lambda (filename visit beg end replace)
+;;                                               (when replace
+;;                                                 (erase-buffer))
+;;                                               (when visit
+;;                                                 (setq buffer-file-name filename)
+;;                                                 (set-buffer-modified-p nil)
+;;                                                 (set-buffer-multibyte t))
+;;                                               (when-let* ((map (map-filename-get-map filename))
+;;                                                           (split (s-split "/" filename))
+;;                                                           (depth (length split))
+;;                                                           (lastpart (car (last split)))
+;;                                                           (obj (or (gather (map-elt map lastpart)) []))
+;;                                                           (str (with-temp-buffer
+;;                                                                  (json-insert obj)
+;;                                                                  ;; Do roundabout with `json-insert' to handle utf-8 multibytes correctly.
+;;                                                                  (buffer-string))))
+;;                                                 (save-excursion
+;;                                                   (setq-local nagy-list--data (map-elt map lastpart))
+;;                                                   (insert str))
+;;                                                 (format-decode nil (+ 2 (buffer-size)) visit)
+;;                                                 (list filename (+ 2 (length str))))))
+;;                     (file-name-all-completions . (lambda (file directory)
+;;                                                    (nreverse
+;;                                                     (cl-loop for f in (directory-files directory)
+;;                                                              when (string-prefix-p file f)
+;;                                                              collect
+;;                                                              (if (file-directory-p f)
+;;                                                                  (concat f "/")
+;;                                                                f))))))))
+;;     (if-let* ((it (alist-get op handlers)))
+;;         (apply it args)
+;;       (let ((inhibit-file-name-handlers
+;;              (cons 'map-file-name-handler
+;;                    (and (eq inhibit-file-name-operation op)
+;;                         inhibit-file-name-handlers)))
+;;             (inhibit-file-name-operation op))
+;;         (apply op args)))))
 
 (cl-defstruct map-transformer -inner key-to key-from)
 (defun map-transformer-get-map (map)
@@ -408,8 +411,12 @@
            (funcall (oref map key-from) map key)
            default))
 (cl-defmethod map-keys ((map map-transformer))
-  (--map (funcall (oref map key-to) map it)
-         (map-keys (map-transformer-get-map map))))
+  (mapcar (lambda (key)
+            (funcall (oref map key-to) map key))
+          (map-keys (map-transformer-get-map map))))
+  ;; (--map (funcall (oref map key-to) map it)
+  ;;        (map-keys (map-transformer-get-map map)))
+
 (cl-defmethod map-do (function (map map-transformer))
   (map-do (lambda (key value)
             (funcall function
@@ -423,8 +430,13 @@
    :key-from (lambda (_map key)
                (string-remove-suffix extension key))
    :key-to (lambda (_map key)
-             (concat key extension))
-   ))
+             (concat key extension))))
+
+
+;;; seq.el integrations
+
+;; frame -> list of windows
+;; `elfeed-feed-p' -> list of `elfeed-feed-entries'
 
 (provide 'map-extras)
 ;;; map-extras.el ends here
