@@ -315,6 +315,56 @@ objects are identities, not snapshots; use `map-pairs' instead."
       (should (assq 'name snapshot))
       (should (= (cdr (assq 'size snapshot)) 2)))))
 
+;;; Derived map.el operations across types
+
+(ert-deftest map-extras-derived-buffer ()
+  "Derived map.el functions work over buffers."
+  (with-temp-buffer
+    (insert "hello")
+    (should (= (map-length (current-buffer)) 9))
+    (should (equal (map-filter (lambda (k _) (memq k '(name size)))
+                               (current-buffer))
+                   (list (cons 'name (buffer-name)) '(size . 5))))
+    (should (map-contains-key (current-buffer) 'size))
+    (should-not (map-contains-key (current-buffer) 'bogus))
+    (should (map-every-p (lambda (k _) (symbolp k)) (current-buffer)))
+    (should (member 'major-mode (map-keys (current-buffer))))))
+
+(ert-deftest map-extras-derived-marker ()
+  "Derived map.el functions work over markers."
+  (with-temp-buffer
+    (insert "0123456789")
+    (goto-char 5)
+    (let ((marker (point-marker)))
+      (should (equal (map-keys marker) '(position buffer)))
+      (should (equal (map-values marker)
+                     (list 5 (current-buffer))))
+      (should (= (map-length marker) 2)))))
+
+(ert-deftest map-extras-derived-thread ()
+  "Derived map.el functions work over threads."
+  (let ((thread (make-thread #'ignore "derived-thread")))
+    (should (equal (sort (map-keys thread) #'string<)
+                   '(live name)))
+    (should (map-contains-key thread 'name))
+    (should (map-every-p (lambda (_ _) t) thread))))
+
+(ert-deftest map-extras-derived-frame ()
+  "Derived map.el functions work over frames."
+  (let ((frame (selected-frame)))
+    (should (= (map-length frame) 6))
+    (should (map-contains-key frame 'selected))
+    (should (equal (map-filter (lambda (k _) (eq k 'selected)) frame)
+                   (list (cons 'selected t))))))
+
+(ert-deftest map-extras-derived-eieio ()
+  "Derived map.el functions work over EIEIO objects."
+  (let ((obj (map-extras-tests-person :name "ada" :age 36)))
+    (should (= (map-length obj) 2))
+    (should (equal (sort (map-keys obj) #'string<) '(age name)))
+    (should (equal (map-filter (lambda (k v) (stringp v)) obj)
+                   '((name . "ada"))))))
+
 ;;; URL maps
 
 (ert-deftest map-extras-url-elt-and-put ()
