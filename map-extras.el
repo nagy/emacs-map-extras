@@ -382,9 +382,13 @@ both correct and fast.  Pass an explicit TESTFN (typically
 
 ;; macros
 
-(defmacro map-extras-define-for-struct (struct keys)
+(defmacro map-extras-define-for-struct (struct keys &optional writable)
   "Define `map.el' methods for cl-defstruct STRUCT with slots KEYS.
-Each slot must have a STRUCT-<slot> accessor."
+Each slot must have a STRUCT-<slot> accessor.
+
+With WRITABLE non-nil, also define `map-put!' writing through the
+same accessors; unknown keys signal `user-error'.  Without it the
+struct stays read-only."
   `(progn
      (cl-defmethod mapp ((_map ,struct))
        t)
@@ -393,7 +397,15 @@ Each slot must have a STRUCT-<slot> accessor."
                    `(funcall function ',slot (,(intern (format "%s-%s" struct slot)) map)))
                  keys))
      (cl-defmethod map-elt ((map ,struct) key &optional default testfn)
-       (map-extras--elt key map default testfn))))
+       (map-extras--elt key map default testfn))
+     ,@(when writable
+         `((cl-defmethod map-put! ((map ,struct) key value &optional _testfn)
+             (cl-case key
+               ,@(mapcar (lambda (slot)
+                           `(,slot (setf (,(intern (format "%s-%s" struct slot)) map)
+                                         value)))
+                         keys)
+               (t (user-error "Cannot write key %S to %s" key ',struct))))))))
 
 (cl-defstruct map-extras-transformer -inner key-to key-from)
 

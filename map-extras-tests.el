@@ -308,6 +308,9 @@
 
 (map-extras-define-for-struct map-extras-tests-thing (alpha beta))
 
+(cl-defstruct map-extras-tests-thing-w alpha beta)
+(map-extras-define-for-struct map-extras-tests-thing-w (alpha beta) writable)
+
 (ert-deftest map-extras-struct-mapp ()
   "`map-extras-define-for-struct' defines `mapp'."
   (let ((thing (make-map-extras-tests-thing :alpha 1 :beta 2)))
@@ -424,6 +427,18 @@ mirroring what `map-do' exposes."
     (should (equal pairs '((:custom . t))))))
 
 ;;; map-put!
+
+(ert-deftest map-extras-struct-writable-put ()
+  "`map-extras-define-for-struct :writable' defines `map-put!'."
+  (let ((thing (make-map-extras-tests-thing-w :alpha 1 :beta 2)))
+    (map-put! thing 'alpha 10)
+    (should (= (map-elt thing 'alpha) 10))
+    (should-error (map-put! thing 'gamma 3) :type 'user-error)))
+
+(ert-deftest map-extras-struct-read-only-put-errors ()
+  "Without :writable, `map-put!' on a struct signals an error."
+  (let ((thing (make-map-extras-tests-thing :alpha 1)))
+    (should-error (map-put! thing 'alpha 10))))
 
 (ert-deftest map-extras-buffer-put-name ()
   "`map-put!' on buffer name renames the buffer."
