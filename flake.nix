@@ -29,7 +29,6 @@
         let
           emacsPackages = pkgs.emacsPackages;
           inherit (emacsPackages) melpaBuild;
-          dash = emacsPackages.dash;
         in
         {
           packages.map-extras = melpaBuild {
@@ -38,7 +37,8 @@
 
             src = lib.cleanSource ./.;
 
-            packageRequires = [ dash ];
+            # Built-ins only: no external package dependencies.
+            packageRequires = [ ];
 
             turnCompilationWarningToError = true;
 
@@ -48,7 +48,6 @@
               runHook preCheck
               emacs --batch -Q \
                 -L . \
-                -L ${dash}/share/emacs/site-lisp/elpa/dash-* \
                 -l map-extras-tests.el \
                 -f ert-run-tests-batch-and-exit
               runHook postCheck

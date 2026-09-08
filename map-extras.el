@@ -7,7 +7,7 @@
 ;; Created: January 31, 2025
 ;; Version: 0.1
 ;; Homepage: https://github.com/nagy/emacs-map-extras
-;; Package-Requires: ((emacs "27.1") dash)
+;; Package-Requires: ((emacs "27.1"))
 ;;
 ;; This file is NOT part of GNU Emacs.
 ;;
@@ -37,8 +37,6 @@
 ;;; Code:
 
 (require 'map)
-
-(require 'dash)
 (require 'eieio)
 
 (defun map-extras--elt (key map default &optional testfn)
@@ -391,8 +389,9 @@ Each slot must have a STRUCT-<slot> accessor."
      (cl-defmethod mapp ((_map ,struct))
        t)
      (cl-defmethod map-do (function (map ,struct))
-       ,@(--map `(funcall function ',it (,(intern (format "%s-%s" struct it)) map))
-                keys))
+       ,@(mapcar (lambda (slot)
+                   `(funcall function ',slot (,(intern (format "%s-%s" struct slot)) map)))
+                 keys))
      (cl-defmethod map-elt ((map ,struct) key &optional default testfn)
        (map-extras--elt key map default testfn))))
 
