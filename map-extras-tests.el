@@ -122,6 +122,43 @@
       (should (= (map-elt marker 'position) 5))
       (should (eq (map-elt marker 'buffer) (current-buffer))))))
 
+;;; Overlay maps
+
+(ert-deftest map-extras-mapp-overlay ()
+  "`mapp' recognizes overlays."
+  (with-temp-buffer
+    (should (mapp (make-overlay 1 2 (current-buffer))))))
+
+(ert-deftest map-extras-overlay-elt ()
+  "`map-elt' reads overlay bounds and buffer."
+  (with-temp-buffer
+    (insert "0123456789")
+    (let ((ov (make-overlay 2 5 (current-buffer))))
+      (should (= (map-elt ov 'start) 2))
+      (should (= (map-elt ov 'end) 5))
+      (should (eq (map-elt ov 'buffer) (current-buffer))))))
+
+(ert-deftest map-extras-overlay-put-bounds ()
+  "`map-put!' moves overlay bounds and switches buffers."
+  (with-temp-buffer
+    (insert "0123456789")
+    (let ((ov (make-overlay 2 5 (current-buffer))))
+      (map-put! ov 'start 1)
+      (should (= (overlay-start ov) 1))
+      (map-put! ov 'end 8)
+      (should (= (overlay-end ov) 8))
+      (let ((other (generate-new-buffer "map-extras-ov-dest")))
+        (map-put! ov 'buffer other)
+        (should (eq (overlay-buffer ov) other))
+        (kill-buffer other)))))
+
+(ert-deftest map-extras-overlay-put-properties ()
+  "`map-put!' with a non-structural key sets an overlay property."
+  (with-temp-buffer
+    (let ((ov (make-overlay 1 2 (current-buffer))))
+      (map-put! ov 'face 'bold)
+      (should (eq (overlay-get ov 'face) 'bold)))))
+
 ;;; Process maps
 
 (ert-deftest map-extras-process-elt ()

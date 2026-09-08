@@ -76,6 +76,28 @@ Keys are compared with TESTFN, defaulting to `eq'."
     ('name (with-current-buffer map (rename-buffer value)))
     ('directory (with-current-buffer map (cd value)))))
 
+;;; Overlay
+
+(cl-defmethod mapp ((_map overlay))
+  t)
+
+(cl-defmethod map-do (function (map overlay))
+  (funcall function 'start (overlay-start map))
+  (funcall function 'end (overlay-end map))
+  (funcall function 'buffer (overlay-buffer map))
+  (funcall function 'properties (overlay-properties map)))
+
+(cl-defmethod map-elt ((map overlay) key &optional default testfn)
+  (map-extras--elt key map default testfn))
+
+(cl-defmethod map-put! ((map overlay) key value &optional _testfn)
+  (pcase key
+    ('start (move-overlay map value (overlay-end map)))
+    ('end (move-overlay map (overlay-start map) value))
+    ('buffer (move-overlay map (overlay-start map) (overlay-end map) value))
+    ;; Anything else is an overlay property, stored on the overlay itself.
+    (_ (overlay-put map key value))))
+
 ;;; Window
 
 (cl-defmethod mapp ((_map window))
