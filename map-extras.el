@@ -230,8 +230,7 @@ Keys are compared with TESTFN, defaulting to `eq'."
 ;; loaded, so requiring `map-extras' stays cheap for users who never
 ;; touch `url' objects.
 (eval-when-compile
-  (require 'url-parse)
-  (require 'subr-x))
+  (require 'url-parse))
 (with-eval-after-load 'url-parse
   (declare-function url-type "url-parse")
   (declare-function url-user "url-parse")
@@ -340,8 +339,12 @@ Each slot must have a STRUCT-<slot> accessor."
 (defun make-map-transformer-via-extension (map extension)
   (make-map-transformer
    :-inner map
+   ;; Strip EXTENSION without `string-remove-suffix' (subr-x), which
+   ;; is not available at runtime in byte-compiled installs.
    :key-from (lambda (_map key)
-               (string-remove-suffix extension key))
+               (if (string-suffix-p extension key)
+                   (substring key 0 (- (length key) (length extension)))
+                 key))
    :key-to (lambda (_map key)
              (concat key extension))))
 
