@@ -114,8 +114,6 @@ Keys are compared with TESTFN, defaulting to `eq'."
   (funcall function 'point (window-point map))
   (funcall function 'parameters (window-parameters map))
   (funcall function 'start (window-start map)))
-;; (funcall function 'display-table (window-display-table map))
-
 
 (cl-defmethod map-elt ((map window) key &optional default testfn)
   (map-extras--elt key map default testfn))
@@ -138,13 +136,6 @@ Keys are compared with TESTFN, defaulting to `eq'."
   ;; `process-attributes' is a system call, deliberately excluded from
   ;; the iteration; call it directly when needed.
   (funcall function 'mark (process-mark map)))
-;; (funcall function 'environment
-;;          (--map (let ((splitted (string-split it "=")))
-;;                   (cons (car splitted)
-;;                         (substring it (1+ (length (car splitted))))))
-;;                 (pcase-buffer--get-environment map))
-;;          )
-
 
 (cl-defmethod map-elt ((map process) key &optional default testfn)
   (map-extras--elt key map default testfn))
@@ -275,12 +266,6 @@ Keys are compared with TESTFN, defaulting to `eq'."
       (_ (user-error "Cannot write key %S to url %S" key (url-host map))))))
 
 
-;;; sqlitep
-;;; sqlite-statements seq integration
-
-;;; obarray
-
-;; Non-Emacs
 ;;; Ts
 (with-eval-after-load 'ts
   (declare-function ts-second "ts")
