@@ -171,6 +171,18 @@ Keys are compared with TESTFN, defaulting to `eq'."
 (cl-defmethod map-elt ((map frame) key &optional default testfn)
   (map-extras--elt key map default testfn))
 
+;;; Thread
+
+(cl-defmethod mapp ((_map thread))
+  t)
+
+(cl-defmethod map-do (function (map thread))
+  (funcall function 'name (thread-name map))
+  (funcall function 'live (thread-live-p map)))
+
+(cl-defmethod map-elt ((map thread) key &optional default testfn)
+  (map-extras--elt key map default testfn))
+
 ;;; Keymaps
 
 ;; ...

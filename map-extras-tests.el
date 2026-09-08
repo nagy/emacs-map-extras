@@ -122,6 +122,27 @@
       (should (= (map-elt marker 'position) 5))
       (should (eq (map-elt marker 'buffer) (current-buffer))))))
 
+;;; Thread maps
+
+(ert-deftest map-extras-mapp-thread ()
+  "`mapp' recognizes threads."
+  (should (mapp (car (all-threads)))))
+
+(ert-deftest map-extras-thread-elt ()
+  "`map-elt' reads thread name and liveness."
+  (let ((thread (make-thread #'ignore "map-extras-thread")))
+    (should (equal (map-elt thread 'name) "map-extras-thread"))
+    (should (eq (map-elt thread 'nonexistent :sentinel) :sentinel)))
+  ;; The main thread has no name.
+  (should (eq (map-elt (car (all-threads)) 'live) t))
+  (should (eq (map-elt (car (all-threads)) 'nonexistent :sentinel) :sentinel)))
+
+(ert-deftest map-extras-thread-do-keys ()
+  "`map-do' visits every thread key."
+  (let (keys)
+    (map-do (lambda (k _v) (push k keys)) (car (all-threads)))
+    (should (equal keys '(live name)))))
+
 ;;; Frame maps
 
 (ert-deftest map-extras-mapp-frame ()
