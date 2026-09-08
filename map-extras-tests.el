@@ -332,6 +332,48 @@
                                        :key-from #'identity
                                        :key-to #'identity))))
 
+;;; Generic EIEIO maps
+
+(defclass map-extras-tests-person ()
+  ((name :initarg :name :initform "anon")
+   (age :initarg :age :initform 0)
+   (--internal :initform nil)))
+
+(ert-deftest map-extras-eieio-mapp ()
+  "`mapp' recognizes any EIEIO object."
+  (should (mapp (map-extras-tests-person))))
+
+(ert-deftest map-extras-eieio-elt ()
+  "`map-elt' reads EIEIO slots; internal and unbound slots are invisible."
+  (let ((obj (map-extras-tests-person :name "ada")))
+    (should (equal (map-elt obj 'name) "ada"))
+    (should (= (map-elt obj 'age) 0))
+    (should-not (map-elt obj '--internal))
+    (should (eq (map-elt obj 'missing :sentinel) :sentinel))))
+
+(ert-deftest map-extras-eieio-do-keys ()
+  "`map-do' visits public bound slots."
+  (let (keys)
+    (map-do (lambda (k _v) (push k keys)) (map-extras-tests-person))
+    (should (equal keys '(age name)))))
+
+(ert-deftest map-extras-eieio-put ()
+  "`map-put!' writes EIEIO slots."
+  (let ((obj (map-extras-tests-person)))
+    (map-put! obj 'name "grace")
+    (should (equal (eieio-oref obj 'name) "grace"))
+    (should (equal (map-elt obj 'name) "grace"))))
+
+(ert-deftest map-extras-eieio-class-method-wins ()
+  "A class-specific map-do beats the generic EIEIO method."
+  (defclass map-extras-tests-shaped ()
+    ((x :initform 1)))
+  (cl-defmethod map-do (function (_obj map-extras-tests-shaped))
+    (funcall function :custom t))
+  (let (pairs)
+    (map-do (lambda (k v) (push (cons k v) pairs)) (map-extras-tests-shaped))
+    (should (equal pairs '((:custom . t))))))
+
 ;;; map-put!
 
 (ert-deftest map-extras-buffer-put-name ()

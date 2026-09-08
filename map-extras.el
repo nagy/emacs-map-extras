@@ -185,26 +185,31 @@ Keys are compared with TESTFN, defaulting to `eq'."
 
 ;;; Keymaps
 
-;; A keymap is a list, so a plain `keymap' type specializer would lose
-;; method dispatch to map.el's `list' method.  Registering a derived
-;; type gives it its own dispatch tag; predicates generalizers rank
-;; above the built-in types.
-(cl-deftype map-extras-keymap () '(satisfies keymapp))
+;; A keymap is a list, so a separate type specializer cannot give it
+;; its own dispatch tag without colliding with map.el's `list' tag.
+;; Instead, wrap the list methods: keymaps are detected at runtime and
+;; everything else falls through via `cl-call-next-method'.
 
-(cl-defmethod mapp ((_map map-extras-keymap))
-  t)
+(cl-defmethod mapp :around ((map list))
+  (or (keymapp map) (cl-call-next-method)))
 
-(cl-defmethod map-do (function (map map-extras-keymap))
-  ;; Shallow iteration: prefix keys show up as keymap bindings.
-  (map-keymap (lambda (event binding)
-                (funcall function event binding))
-              map))
+(cl-defmethod map-do :around (function (map list))
+  (if (keymapp map)
+      ;; Shallow iteration: prefix keys appear with a subkeymap binding.
+      (map-keymap (lambda (event binding)
+                    (funcall function event binding))
+                  map)
+    (cl-call-next-method)))
 
-(cl-defmethod map-elt ((map map-extras-keymap) key &optional default testfn)
-  (map-extras--elt key map default testfn))
+(cl-defmethod map-elt :around ((map list) key &optional default testfn)
+  (if (keymapp map)
+      (map-extras--elt key map default testfn)
+    (cl-call-next-method)))
 
-(cl-defmethod map-put! ((map map-extras-keymap) key value &optional _testfn)
-  (define-key map (vector key) value))
+(cl-defmethod map-put! :around ((map list) key value &optional _testfn)
+  (if (keymapp map)
+      (define-key map (vector key) value)
+    (cl-call-next-method)))
 
 ;;; Marker
 
@@ -340,6 +345,28 @@ Each slot must have a STRUCT-<slot> accessor."
    :key-to (lambda (_map key)
              (concat key extension))))
 
+
+;;; Generic EIEIO objects
+
+;; One set of methods for any EIEIO object: slots become keys.  More
+;; specific methods (e.g. a class defining its own map-do) always win,
+;; since eieio-default-superclass is the root of the class hierarchy.
+(cl-defmethod mapp ((_map eieio-default-superclass))
+  t)
+
+(cl-defmethod map-do (function (map eieio-default-superclass))
+  (dolist (slot (eieio-class-slots (eieio-object-class map)))
+    (let ((name (cl--slot-descriptor-name slot)))
+      ;; Slots named --* are internal and unbound until set.
+      (unless (string-prefix-p "--" (symbol-name name))
+        (when (slot-boundp map name)
+          (funcall function name (eieio-oref map name)))))))
+
+(cl-defmethod map-elt ((map eieio-default-superclass) key &optional default testfn)
+  (map-extras--elt key map default testfn))
+
+(cl-defmethod map-put! ((map eieio-default-superclass) key value &optional _testfn)
+  (setf (eieio-oref map key) value))
 
 ;;; seq.el integrations
 
