@@ -7,7 +7,7 @@
 ;; Created: January 31, 2025
 ;; Version: 0.1
 ;; Homepage: https://github.com/nagy/emacs-map-extras
-;; Package-Requires: ((emacs "27.1") dash eieio)
+;; Package-Requires: ((emacs "27.1") dash)
 ;;
 ;; This file is NOT part of GNU Emacs.
 ;;
