@@ -35,6 +35,14 @@
 (require 'dash)
 (require 'eieio)
 
+(defun map-extras--elt (key map default)
+  (catch 'map-extras--found
+    (map-do (lambda (k v)
+              (when (eq k key)
+                (throw 'map-extras--found v)))
+            map)
+    default))
+
 ;;; Buffer
 
 (cl-defmethod mapp ((_map buffer))
@@ -54,14 +62,7 @@
 
 
 (cl-defmethod map-elt ((map buffer) key &optional default)
-  (let ((retsym (eval-when-compile (gensym "map-elt--buffer"))))
-    (ignore retsym)
-    (or (cl-block retsym
-          (map-do (lambda (k v)
-                    (when (eq k key)
-                      (cl-return-from retsym v)))
-                  map))
-        default)))
+  (map-extras--elt key map default))
 
 ;;; Window
 
@@ -80,14 +81,7 @@
 
 
 (cl-defmethod map-elt ((map window) key &optional default)
-  (let ((retsym (eval-when-compile (gensym "map-elt--window"))))
-    (ignore retsym)
-    (or (cl-block retsym
-          (map-do (lambda (k v)
-                    (when (eq k key)
-                      (cl-return-from retsym v)))
-                  map))
-        default)))
+  (map-extras--elt key map default))
 
 ;;; Process
 
@@ -116,14 +110,7 @@
 
 
 (cl-defmethod map-elt ((map process) key &optional default)
-  (let ((retsym (eval-when-compile (gensym "map-elt--process"))))
-    (ignore retsym)
-    (or (cl-block retsym
-          (map-do (lambda (k v)
-                    (when (eq k key)
-                      (cl-return-from retsym v)))
-                  map))
-        default)))
+  (map-extras--elt key map default))
 
 ;;; Keymaps
 
@@ -140,14 +127,7 @@
 
 
 (cl-defmethod map-elt ((marker marker) key &optional default)
-  (let ((retsym (eval-when-compile (gensym "map-elt--process"))))
-    (ignore retsym)
-    (or (cl-block retsym
-          (map-do (lambda (k v)
-                    (when (eq k key)
-                      (cl-return-from retsym v)))
-                  marker))
-        default)))
+  (map-extras--elt key marker default))
 
 ;;; URL
 
@@ -169,14 +149,7 @@
 
 
 (cl-defmethod map-elt ((map url) key &optional default)
-  (let ((retsym (eval-when-compile (gensym "map-elt--window"))))
-    (ignore retsym)
-    (or (cl-block retsym
-          (map-do (lambda (k v)
-                    (when (eq k key)
-                      (cl-return-from retsym v)))
-                  map))
-        default)))
+  (map-extras--elt key map default))
 
 (cl-defmethod map-put! ((map url) key value &optional _testfn)
   (pcase key
@@ -262,14 +235,7 @@
     (funcall function 'second (ts-second map)))
 
   (cl-defmethod map-elt ((map ts) key &optional default)
-    (let ((retsym (eval-when-compile (gensym "map-elt--process"))))
-      (ignore retsym)
-      (or (cl-block retsym
-            (map-do (lambda (k v)
-                      (when (eq k key)
-                        (cl-return-from retsym v)))
-                    map))
-          default))))
+    (map-extras--elt key map default)))
 
 ;;;; Magit section
 ;; (with-eval-after-load 'magit-section
