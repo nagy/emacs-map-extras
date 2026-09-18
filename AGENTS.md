@@ -11,6 +11,12 @@ timestamps (`ts`), plus EIEIO/struct support helpers
 - Optional dependencies (`ts`, etc.) go inside `with-eval-after-load` with
   `declare-function` for each accessor.
 
+## Issue tracking
+
+Open recommendations live in git-bug (embedded tracker, `refs/bugs/*`),
+not in an Org file. Use `nix-shell -p git-bug --run 'git-bug bug'` to
+list them. See the "Tracker conventions and sync" issue.
+
 ## Checks
 
 - Byte-compile before committing:
