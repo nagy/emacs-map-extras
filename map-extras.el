@@ -392,12 +392,12 @@ Markers are read-only maps; every key signals `user-error'."
 
 ;;; URL
 
-;; Deferred like `ts': only define the methods once `url-parse' is
-;; loaded, so requiring `map-extras' stays cheap for users who never
-;; touch `url' objects.
+;; `package-lint' rejects `with-eval-after-load' in packages, so the
+;; library loads with `require' and NOERROR instead: it loads when the
+;; library exists and returns nil when it does not.
 (eval-when-compile
   (require 'url-parse))
-(with-eval-after-load 'url-parse
+(when (require 'url-parse nil t)
   (declare-function url-type "url-parse")
   (declare-function url-user "url-parse")
   (declare-function url-password "url-parse")
@@ -456,7 +456,9 @@ Unknown keys signal `user-error'."
 
 
 ;;; Ts
-(with-eval-after-load 'ts
+;; `ts' is optional: NOERROR makes the `require' nil when the library is
+;; missing, and the methods stay undefined in that case.
+(when (require 'ts nil t)
   (declare-function ts-second "ts")
   (declare-function ts-minute "ts")
   (declare-function ts-hour "ts")

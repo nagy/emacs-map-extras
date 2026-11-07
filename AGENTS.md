@@ -8,8 +8,10 @@ timestamps (`ts`), plus EIEIO/struct support helpers
 ## Conventions
 
 - Lexical binding, `;;;` section headers, `map-extras--` prefix for internals.
-- Optional dependencies (`ts`, etc.) go inside `with-eval-after-load` with
-  `declare-function` for each accessor.
+- Optional dependencies (`ts`, etc.) load with `(when (require 'lib nil t)
+  ...)` around the methods, plus `declare-function` for each accessor.
+  Do not use `with-eval-after-load`: `package-lint' rejects it in
+  packages, and that warning fails `checks.lint'.
 
 ## Issue tracking
 
