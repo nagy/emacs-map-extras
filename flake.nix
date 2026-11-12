@@ -82,9 +82,21 @@
               nativeCheckInputs = [ emacsForTests ];
               checkPhase = ''
                 runHook preCheck
+                # `melpaBuild' stages only the root `*.el' files, so the
+                # test tree must come back before it can be loaded.
+                cp -r ${./test} ./test
+                # `printf' repeats "-l %s" per match, which turns the glob
+                # into `-l <file>' pairs.  `failglob' makes an empty glob a
+                # shell error, so the `||' guard fires even without `set -e'.
+                # Restore the default right after: later commands need
+                # default glob semantics.  The unquoted $test_args splits on
+                # purpose; test file names never contain spaces.
+                shopt -s failglob
+                test_args=$(printf -- "-l %s " test/*-test.el) || { echo 'no tests matched test/*-test.el' >&2; exit 1; }
+                shopt -u failglob
                 ${emacsForTests}/bin/emacs --batch -Q \
-                  -L . \
-                  -l map-extras-tests.el \
+                  -L . -L test \
+                  $test_args \
                   -f ert-run-tests-batch-and-exit
                 runHook postCheck
               '';

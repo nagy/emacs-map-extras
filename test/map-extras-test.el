@@ -1,4 +1,4 @@
-;;; map-extras-tests.el --- ERT tests for map-extras.el -*- lexical-binding: t; -*-
+;;; map-extras-test.el --- ERT tests for map-extras.el -*- lexical-binding: t; -*-
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -586,5 +586,5 @@ mirroring what `map-do' exposes."
           (should (eq (map-elt proc 'sentinel) #'ignore)))
       (delete-process proc))))
 
-(provide 'map-extras-tests)
-;;; map-extras-tests.el ends here
+(provide 'map-extras-test)
+;;; map-extras-test.el ends here

@@ -19,6 +19,14 @@ Open recommendations live in git-bug (embedded tracker, `refs/bugs/*`),
 not in an Org file. Use `nix-shell -p git-bug --run 'git-bug bug'` to
 list them. See the "Tracker conventions and sync" issue.
 
+## Tests
+
+ERT tests live in `test/`, one `<unit>-test.el` per source file. Name each
+`ert-deftest` with the package prefix (`map-extras-<unit>-<behavior>`).
+The flake `checkPhase` loads `test/*-test.el` through a `failglob` glob,
+so a new test file needs no flake edit. Shared fixtures go in
+`map-extras-test-helper.el`.
+
 ## Checks
 
 - Byte-compile before committing:
