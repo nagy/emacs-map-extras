@@ -140,7 +140,9 @@
 
 (defvar map-extras-tests-keymap (make-sparse-keymap))
 (define-key map-extras-tests-keymap "a" 'map-extras-test-command)
-(define-key map-extras-tests-keymap (kbd "C-c x") 'map-extras-test-cmd2)
+;; `C-c' followed by a digit belongs to packages; `C-c' plus a letter
+;; belongs to users, and package-lint rejects that form.
+(define-key map-extras-tests-keymap (kbd "C-c 1") 'map-extras-test-cmd2)
 
 (ert-deftest map-extras-mapp-keymap ()
   "`mapp' recognizes keymaps."
@@ -175,7 +177,7 @@
   "`map-nested-elt' reaches leaf bindings across prefix subkeymaps.
 Iteration and `map-elt' stay shallow; this is the documented deep
 lookup path."
-  (should (eq (map-nested-elt map-extras-tests-keymap (list 3 ?x))
+  (should (eq (map-nested-elt map-extras-tests-keymap (list 3 ?1))
               'map-extras-test-cmd2))
   ;; Shallow `map-elt' only sees the prefix's subkeymap binding.
   (should (keymapp (map-elt map-extras-tests-keymap 3))))
@@ -428,7 +430,7 @@ objects are identities, not snapshots; use `map-pairs' instead."
   "`map-elt' on a struct reads a slot directly, without the scan."
   (let ((thing (make-map-extras-tests-thing :alpha 1 :beta 2)))
     (cl-letf (((symbol-function 'map-extras--elt)
-               (lambda (&rest _) (error "map-extras--elt must not be called"))))
+               (lambda (&rest _) (error "Map-extras--elt must not be called"))))
       (should (= (map-elt thing 'alpha) 1))
       (should (= (map-elt thing 'beta) 2)))))
 
@@ -527,8 +529,8 @@ objects are identities, not snapshots; use `map-pairs' instead."
     (should (equal (map-elt obj 'name) "grace"))))
 
 (ert-deftest map-extras-eieio-put-rejects-hidden-and-unknown-slots ()
-  "`map-put!' rejects internal `--*' and unknown slot names,
-mirroring what `map-do' exposes."
+  "`map-put!' rejects internal `--*' and unknown slots.
+It mirrors what `map-do' exposes."
   (let ((obj (map-extras-tests-person)))
     (should-error (map-put! obj '--internal 5) :type 'user-error)
     (should-error (map-put! obj 'no-such-slot 5) :type 'user-error)))
@@ -536,6 +538,7 @@ mirroring what `map-do' exposes."
 (defclass map-extras-tests-shaped ()
   ((x :initform 1)))
 (cl-defmethod map-do (function (_obj map-extras-tests-shaped))
+  "Call FUNCTION for the shaped test class."
   (funcall function :custom t))
 
 (ert-deftest map-extras-eieio-class-method-wins ()

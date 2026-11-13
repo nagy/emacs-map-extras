@@ -34,3 +34,6 @@ so a new test file needs no flake edit. Shared fixtures go in
   ```sh
   emacs --batch -L . -f batch-byte-compile map-extras.el && rm -f map-extras.elc
   ```
+
+- `checks.lint` runs package-lint and checkdoc over `*.el test/*.el`. Test
+  files follow the same header, docstring and prefix rules as the package.

@@ -142,22 +142,34 @@
                   (pkgs.emacsPackages.emacsWithPackages (epkgs: [
                     epkgs.package-lint
                   ]))
+                  # Gives Emacs a writable HOME, so no `export HOME=$TMPDIR'
+                  # line, and no two checks share a home directory.
+                  pkgs.writableTmpDirAsHomeHook
                 ];
                 inherit src;
                 meta.description = "map-extras checkdoc and package-lint checks";
               }
               ''
-                export HOME=$TMPDIR
-                cp "$src/map-extras.el" .
+                # `src' may be pre-filtered, so copy the tree explicitly
+                # instead of relying on what the launcher staged.
+                cp -r "$src"/. .
 
-                # package-lint exits non-zero on any finding.  The package
-                # names no external dependency, so it needs no stubs.
-                emacs --batch -l package-lint -f package-lint-batch-and-exit map-extras.el
+                # test/ stays in the lint surface: test files must keep the
+                # same header, docstring and prefix rules as the code under
+                # test.  `package-lint-main-file' is mandatory once
+                # test/*.el joins the glob, or each test file counts as its
+                # own package and misses the `Package-Requires' header.
+                emacs --batch -l package-lint \
+                  --eval '(setq package-lint-main-file "map-extras.el")' \
+                  -f package-lint-batch-and-exit \
+                  *.el test/*.el
 
                 # checkdoc exits 0 even when it reports problems, so gate
                 # on its output instead.
                 report=$(emacs --batch -l checkdoc \
-                  --eval "(checkdoc-file \"map-extras.el\")" 2>&1)
+                  --eval '(setq checkdoc-arguments-in-order-flag t)' \
+                  --eval '(mapc (lambda (f) (checkdoc-file f)) command-line-args-left)' \
+                  *.el test/*.el 2>&1)
                 if [ -n "$report" ]; then
                   printf '%s\n' "$report"
                   exit 1
